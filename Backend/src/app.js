@@ -1,6 +1,11 @@
-import express from "express";
-import cors from "cors";
-import  cookieParser from 'cookie-parser';
+import express from 'express'
+import http from 'http'
+import cors from 'cors'
+import { Server as SocketServer } from 'socket.io'
+import cookieParser from 'cookie-parser';
+
+import dotenv from 'dotenv'
+dotenv.config({ path: './.env' })
 
 const app = express();
 
@@ -16,6 +21,21 @@ app.use(express.static("public"));
 
 app.use(cookieParser());
 
+const server = http.createServer(app)
 
-export {app}
+const io = new SocketServer(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+})
+io.on('connection', (socket) => {
+  console.log("Socket.io connected ", socket.id)
+
+  socket.on('disconnect', () => {
+    console.log('Socket.io disconnected', socket.id)
+  })
+})
+
+export {server}
 
