@@ -4,7 +4,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"nodemon src/index.js\" \"npm run yjs\""
+    "dev": "concurrently --names \"server,yjs\" -c \"blue,green\" \"nodemon src/index.js\" \"node yjs-server.js\""
   },
   "author": "",
   "license": "ISC",
@@ -12,18 +12,24 @@
   "dependencies": {
     "@hocuspocus/server": "^2.15.2",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "cloudinary": "^2.6.0",
+    "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dockerode": "^4.0.6",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
     "google-auth-library": "^9.15.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.2",
+    "mongoose": "^8.15.0",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "multer": "^1.4.5-lts.2",
+    "nanoid": "^5.1.5",
     "socket.io": "^4.8.1",
-    "ws": "^8.18.1",
+    "ws": "^8.18.2",
     "y-websocket": "^1.5.4"
   },
   "devDependencies": {
