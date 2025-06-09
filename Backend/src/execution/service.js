@@ -1,3 +1,4 @@
+
 import Dockerode from 'dockerode';
 import { WebSocketServer } from 'ws';
 
@@ -28,13 +29,32 @@ export const createExecutionService = () => {
     }
   };
 
+  const parseDockerOutput = (chunk) => {
+    const output = chunk.toString();
+    // Remove Docker stream headers (8 bytes) if present
+    return output.length > 8 && output.charCodeAt(0) <= 2 
+      ? output.slice(8) 
+      : output;
+  };
+
+  const sendMessage = (ws, type, data, timestamp = true) => {
+    const message = {
+      type,
+      data,
+      ...(timestamp && { timestamp: new Date().toISOString() })
+    };
+    ws.send(JSON.stringify(message));
+  };
+
   wss.on('connection', (ws) => {
+    sendMessage(ws, 'system', '🔗 Connected to execution service', false);
+
     ws.on('message', async (message) => {
       let parsed;
       try {
         parsed = JSON.parse(message);
       } catch (err) {
-        ws.send(JSON.stringify({ type: 'error', data: 'Invalid JSON' }));
+        sendMessage(ws, 'error', '❌ Invalid JSON format');
         return;
       }
 
@@ -42,9 +62,16 @@ export const createExecutionService = () => {
       const config = languageConfigs[language];
 
       if (!config) {
-        ws.send(JSON.stringify({ type: 'error', data: 'Unsupported language' }));
+        sendMessage(ws, 'error', `❌ Language '${language}' not supported`);
         return;
       }
+
+      if (!code || code.trim() === '') {
+        sendMessage(ws, 'error', '❌ No code provided');
+        return;
+      }
+
+      sendMessage(ws, 'system', `🚀 Executing ${language} code...`);
 
       let container;
       try {
@@ -93,29 +120,29 @@ export const createExecutionService = () => {
           timestamps: false
         });
 
+        let hasOutput = false;
+
         // Handle stream data
         stream.on('data', (chunk) => {
-          ws.send(JSON.stringify({
-            type: 'output',
-            data: chunk.toString()
-          }));
+          hasOutput = true;
+          const cleanOutput = parseDockerOutput(chunk);
+          if (cleanOutput.trim()) {
+            sendMessage(ws, 'output', cleanOutput, false);
+          }
         });
 
         stream.on('end', () => {
-          ws.send(JSON.stringify({
-            type: 'end',
-            data: 'Execution completed'
-          }));
+          if (!hasOutput) {
+            sendMessage(ws, 'output', '(no output)', false);
+          }
+          sendMessage(ws, 'end', '✅ Execution completed');
         });
 
         // Timeout handling
         const timeout = setTimeout(async () => {
           try {
             await container.stop();
-            ws.send(JSON.stringify({
-              type: 'error',
-              data: 'Execution timed out'
-            }));
+            sendMessage(ws, 'error', '⏱️ Execution timed out');
           } catch (e) {
             console.error('Error stopping container:', e);
           }
@@ -133,10 +160,11 @@ export const createExecutionService = () => {
 
       } catch (error) {
         console.error('Execution error:', error);
-        ws.send(JSON.stringify({ 
-          type: 'error',
-          data: error.message
-        }));
+        const errorMsg = error.message.includes('pull') 
+          ? '🐳 Docker image unavailable' 
+          : `💥 ${error.message}`;
+        
+        sendMessage(ws, 'error', errorMsg);
 
         try {
           await docker.pruneImages({ filters: { dangling: { false: false } }});
@@ -144,6 +172,10 @@ export const createExecutionService = () => {
           console.error('Image pruning failed:', pruneError);
         }
       }
+    });
+
+    ws.on('close', () => {
+      console.log('Client disconnected');
     });
   });
 
