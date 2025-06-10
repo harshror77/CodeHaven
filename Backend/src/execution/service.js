@@ -1,11 +1,10 @@
-
 import Dockerode from 'dockerode';
 import { WebSocketServer } from 'ws';
 
 export const createExecutionService = () => {
   const docker = new Dockerode({
-    socketPath: process.platform === 'win32' 
-      ? '//./pipe/docker_engine' 
+    socketPath: process.platform === 'win32'
+      ? '//./pipe/docker_engine'
       : '/var/run/docker.sock'
   });
 
@@ -22,19 +21,72 @@ export const createExecutionService = () => {
       cmd: ['python', '-c'],
       timeout: 5000
     },
-    html: {
-      image: 'nginx',
-      cmd: ['echo', 'HTML cannot be executed directly'],
-      timeout: 1000
+    c: {
+      image: 'gcc:latest',
+      cmd: ['sh', '-c'],
+      script: 'echo "$CODE" > /tmp/program.c && gcc /tmp/program.c -o /tmp/program 2>/tmp/compile_errors.txt && if [ -s /tmp/compile_errors.txt ]; then echo "Compilation errors:" && cat /tmp/compile_errors.txt; exit 1; else echo "Program output:" && /tmp/program 2>/tmp/runtime_errors.txt || (echo "Runtime errors:" && cat /tmp/runtime_errors.txt); fi',
+      timeout: 10000
+    },
+    cpp: {
+      image: 'gcc:latest',
+      cmd: ['sh', '-c'],
+      script: 'echo "$CODE" > /tmp/program.cpp && g++ /tmp/program.cpp -o /tmp/program 2>/tmp/compile_errors.txt && if [ -s /tmp/compile_errors.txt ]; then echo "Compilation errors:" && cat /tmp/compile_errors.txt; exit 1; else echo "Program output:" && /tmp/program 2>/tmp/runtime_errors.txt || (echo "Runtime errors:" && cat /tmp/runtime_errors.txt); fi',
+      timeout: 10000
     }
   };
 
-  const parseDockerOutput = (chunk) => {
-    const output = chunk.toString();
-    // Remove Docker stream headers (8 bytes) if present
-    return output.length > 8 && output.charCodeAt(0) <= 2 
-      ? output.slice(8) 
-      : output;
+  const parseDockerStream = (buffer) => {
+    const messages = [];
+    let offset = 0;
+
+    while (offset < buffer.length) {
+      if (buffer.length - offset < 8) break;
+
+      const header = buffer.slice(offset, offset + 8);
+      const streamType = header[0];
+      const size = header.readUInt32BE(4);
+
+      if (size === 0) {
+        offset += 8;
+        continue;
+      }
+
+      const payload = buffer.slice(offset + 8, offset + 8 + size);
+      const content = payload.toString('utf8');
+
+      // Clean up the content - remove non-printable characters except newlines
+      const cleanContent = content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+      if (cleanContent.trim()) {
+        messages.push({
+          type: streamType === 1 ? 'stdout' : 'stderr',
+          content: cleanContent
+        });
+      }
+
+      offset += 8 + size;
+    }
+
+    return messages;
+  };
+
+  const formatOutput = (output, isError = false) => {
+    if (!output || output.trim() === '') return '';
+
+    let cleanOutput = output.trim();
+
+    if (isError) {
+      // Format GCC errors
+      cleanOutput = cleanOutput
+        .replace(/\/tmp\/program\.(c|cpp):/g, 'Line ')
+        .replace(/undefined reference to/g, 'Undefined function/variable:')
+        .replace(/collect2: error: ld returned/g, 'Linker error:')
+        .replace(/_start/g, 'program entry')
+        .replace(/\/lib\/x86_64-linux-gnu\/crt1\.o/g, '')
+        .replace(/\/usr\/bin\/ld:/g, 'Linker:');
+    }
+
+    return cleanOutput;
   };
 
   const sendMessage = (ws, type, data, timestamp = true) => {
@@ -62,7 +114,7 @@ export const createExecutionService = () => {
       const config = languageConfigs[language];
 
       if (!config) {
-        sendMessage(ws, 'error', `❌ Language '${language}' not supported`);
+        sendMessage(ws, 'error', `❌ Language '${language}' not supported. Available: ${Object.keys(languageConfigs).join(', ')}`);
         return;
       }
 
@@ -71,7 +123,7 @@ export const createExecutionService = () => {
         return;
       }
 
-      sendMessage(ws, 'system', `🚀 Executing ${language} code...`);
+      sendMessage(ws, 'system', `🚀 Executing ${language.toUpperCase()} code...`);
 
       let container;
       try {
@@ -79,23 +131,40 @@ export const createExecutionService = () => {
         await new Promise((resolve, reject) => {
           docker.pull(config.image, (err, stream) => {
             if (err) return reject(err);
-            
+
             docker.modem.followProgress(stream, (err) => {
               err ? reject(err) : resolve();
             });
           });
         });
 
+        // Prepare command based on language
+        let containerCmd;
+        let containerEnv = [
+          'LANG=en_US.UTF-8',
+          'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+        ];
+
+        if (language === 'c' || language === 'cpp') {
+          containerCmd = [...config.cmd, config.script];
+          containerEnv.push(`CODE=${code}`);
+        } else {
+          containerCmd = [...config.cmd, code];
+          if (language === 'javascript') {
+            containerEnv.push('NODE_ENV=production');
+          }
+        }
+
         container = await docker.createContainer({
           Image: config.image,
-          Cmd: [...config.cmd, code],
+          Cmd: containerCmd,
           Tty: false,
           HostConfig: {
             AutoRemove: true,
-            Memory: 100 * 1024 * 1024,
-            MemorySwap: 200 * 1024 * 1024,
+            Memory: 100 * 1024 * 1024, // 100MB
+            MemorySwap: 200 * 1024 * 1024, // 200MB
             CpuPeriod: 100000,
-            CpuQuota: 50000,
+            CpuQuota: 50000, // 50% of CPU
             CpuShares: 512,
             BlkioWeight: 300,
             OomKillDisable: false,
@@ -104,11 +173,7 @@ export const createExecutionService = () => {
             CapDrop: ['ALL'],
             SecurityOpt: ['no-new-privileges']
           },
-          Env: [
-            'LANG=en_US.UTF-8',
-            'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-            'NODE_ENV=production'
-          ]
+          Env: containerEnv
         });
 
         await container.start();
@@ -121,20 +186,72 @@ export const createExecutionService = () => {
         });
 
         let hasOutput = false;
+        let allOutput = [];
+        let buffer = Buffer.alloc(0);
 
         // Handle stream data
         stream.on('data', (chunk) => {
           hasOutput = true;
-          const cleanOutput = parseDockerOutput(chunk);
-          if (cleanOutput.trim()) {
-            sendMessage(ws, 'output', cleanOutput, false);
+          buffer = Buffer.concat([buffer, chunk]);
+
+          // Try to parse complete messages from buffer
+          const messages = parseDockerStream(buffer);
+
+          messages.forEach(msg => {
+            if (msg.content.trim()) {
+              allOutput.push({
+                type: msg.type,
+                content: msg.content.trim()
+              });
+            }
+          });
+
+          // Keep any remaining incomplete data in buffer
+          if (messages.length > 0) {
+            buffer = Buffer.alloc(0);
           }
         });
 
         stream.on('end', () => {
-          if (!hasOutput) {
+          // Process all collected output
+          const stdoutLines = [];
+          const stderrLines = [];
+
+          allOutput.forEach(msg => {
+            const lines = msg.content.split('\n');
+            lines.forEach(line => {
+              const trimmedLine = line.trim();
+              if (trimmedLine) {
+                if (msg.type === 'stdout') {
+                  stdoutLines.push(trimmedLine);
+                } else {
+                  stderrLines.push(trimmedLine);
+                }
+              }
+            });
+          });
+
+          // Send stdout
+          if (stdoutLines.length > 0) {
+            stdoutLines.forEach(line => {
+              sendMessage(ws, 'output', line, false);
+            });
+          }
+
+          // Send stderr
+          if (stderrLines.length > 0) {
+            const formattedErrors = stderrLines.map(line => formatOutput(line, true));
+            formattedErrors.forEach(line => {
+              if (line) {
+                sendMessage(ws, 'error', line, false);
+              }
+            });
+          }
+
+          if (!hasOutput || (stdoutLines.length === 0 && stderrLines.length === 0)) {
             sendMessage(ws, 'output', '(no output)', false);
           }
+
           sendMessage(ws, 'end', '✅ Execution completed');
         });
 
@@ -160,14 +277,20 @@ export const createExecutionService = () => {
 
       } catch (error) {
         console.error('Execution error:', error);
-        const errorMsg = error.message.includes('pull') 
-          ? '🐳 Docker image unavailable' 
-          : `💥 ${error.message}`;
-        
+        let errorMsg = '💥 Execution failed';
+
+        if (error.message.includes('pull')) {
+          errorMsg = '🐳 Docker image unavailable';
+        } else if (error.message.includes('No such container')) {
+          errorMsg = '🔧 Container setup failed';
+        } else if (error.message) {
+          errorMsg = `💥 ${error.message}`;
+        }
+
         sendMessage(ws, 'error', errorMsg);
 
         try {
-          await docker.pruneImages({ filters: { dangling: { false: false } }});
+          await docker.pruneImages({ filters: { dangling: { false: false } } });
         } catch (pruneError) {
           console.error('Image pruning failed:', pruneError);
         }
