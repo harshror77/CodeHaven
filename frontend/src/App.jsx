@@ -1,12 +1,7 @@
 import React from 'react';
-import CodeEditor from './components/CodeEditor';
 
-function App() {
-  return (
-    <div className='p-5'>
-      <CodeEditor roomId="my-room-1" />
-    </div>
-  );
+function App({ children }) {
+  return <div className="min-h-screen bg-gray-50">{children}</div>;
 }
 
 export default App;

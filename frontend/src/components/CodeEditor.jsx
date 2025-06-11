@@ -18,6 +18,8 @@ const languageExtensions = {
 const CodeEditor = ({ roomId }) => {
     const editorRef = useRef(null);
     const terminalRef = useRef(null);
+    const editorViewRef = useRef(null);
+    const ytextRef = useRef(null);
     const [language, setLanguage] = useState('javascript');
     const [isExecuting, setIsExecuting] = useState(false);
     const [terminalContent, setTerminalContent] = useState([]);
@@ -81,6 +83,7 @@ const CodeEditor = ({ roomId }) => {
         });
 
         const ytext = ydoc.getText('codemirror');
+        ytextRef.current = ytext;
 
         const state = EditorState.create({
             doc: ytext.toString(),
@@ -95,6 +98,8 @@ const CodeEditor = ({ roomId }) => {
             state,
             parent: editorRef.current
         });
+
+        editorViewRef.current = view;
 
         const connectWebSocket = () => {
             if (wsRef.current) {
@@ -180,23 +185,21 @@ const CodeEditor = ({ roomId }) => {
         addToTerminal(`Starting ${language.toUpperCase()} execution...`, 'system');
 
         try {
-            const rawCode = Array.from(editorRef.current.querySelectorAll('.cm-line'))
-                .map(line => line.textContent)
-                .join('\n');
+            // Get the clean code directly from the Yjs document
+            // This avoids any UI elements, cursors, or awareness indicators
+            const cleanCode = ytextRef.current ? ytextRef.current.toString() : '';
 
-            console.log('Raw code:', rawCode);
-            if (!rawCode.trim()) {
+            console.log('Clean code from Yjs:', cleanCode);
+
+            if (!cleanCode.trim()) {
                 addToTerminal('No code to execute', 'error');
                 setIsExecuting(false);
                 return;
             }
 
-            const processedCode = rawCode;
-            console.log('Original code:', rawCode);
-            console.log('Processed code:', processedCode);
-
+            // Send the clean code without any additional processing
             wsRef.current.send(JSON.stringify({
-                code: processedCode,
+                code: cleanCode,
                 language,
                 sessionId: roomId
             }));
