@@ -1,91 +1,236 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import CodeEditor from './CodeEditor';
+import axios from 'axios';
+import CodeEditor from './CodeEditor.jsx'; // Import your existing CodeEditor component
+import { useNavigate } from "react-router-dom";
+// Configure axios base URL for your backend
+const api = axios.create({
+    baseURL: 'http://localhost:3000/api',
+    headers: {
+        'Content-Type': 'application/json',
+    }
+});
 
 const Room = () => {
-    const { roomId } = useParams();
-    const navigate = useNavigate();
-    const [showRoomInfo, setShowRoomInfo] = useState(false);
+    const [roomId, setRoomId] = useState('');
+    const [showJoinForm, setShowJoinForm] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [showCodeEditor, setShowCodeEditor] = useState(false);
+    const [currentRoomId, setCurrentRoomId] = useState('');
+    // Generate a simple user ID (in a real app, this would come from authentication)
+    const userId = `user-${Math.random().toString(36).substr(2, 9)}`;
+    const userName = `User${Math.floor(Math.random() * 1000)}`;
+    const Navigate = useNavigate();
+    const createNewRoom = async () => {
+        setLoading(true);
+        setError('');
 
-    const copyRoomId = () => {
-        navigator.clipboard.writeText(roomId);
-        setShowRoomInfo(true);
-        setTimeout(() => setShowRoomInfo(false), 2000);
+        try {
+            const response = await api.post('/rooms/create', {
+                userId: userId,
+                userName: userName
+            });
+
+            const data = response.data;
+            console.log(data);
+            if (data.success) {
+                setCurrentRoomId(data.data.roomId);
+                setShowCodeEditor(true);
+                Navigate(`/room/${data.data.roomId}`);
+            } else {
+                setError(data.message || 'Failed to create room');
+            }
+        } catch (err) {
+            if (err.response) {
+                // Server responded with error status
+                const data = err.response.data;
+                setError(data.message || 'Failed to create room');
+            } else if (err.request) {
+                // Network error
+                setError('Network error. Please try again.');
+            } else {
+                setError('An unexpected error occurred.');
+            }
+            console.error('Error creating room:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const leaveRoom = () => {
-        navigate('/');
+    const joinRoom = async () => {
+        if (!roomId.trim()) {
+            setError('Please enter a room ID');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            // First check if room exists
+            const checkResponse = await api.get(`/rooms/${roomId.trim()}/check`);
+            const checkData = checkResponse.data;
+            // console.log(checkData);
+            if (!checkData.success) {
+                setError('Room not found');
+                setLoading(false);
+                return;
+            }
+
+            if (!checkData.data.available) {
+                setError(checkData.data.reason || 'Room is not available');
+                setLoading(false);
+                return;
+            }
+
+            // Join the room
+            const joinResponse = await api.post(`/rooms/${roomId.trim()}/join`, {
+                userId: userId,
+                userName: userName
+            });
+
+            const joinData = joinResponse.data;
+            console.log(joinData);
+
+            if (joinData.success) {
+                setCurrentRoomId(roomId.trim());
+                setShowCodeEditor(true);
+                Navigate(`/room/${roomId}`);
+            } else {
+                setError(joinData.message || 'Failed to join room');
+            }
+        } catch (err) {
+            if (err.response) {
+                // Server responded with error status
+                const data = err.response.data;
+                setError(data.message || 'Failed to join room');
+            } else if (err.request) {
+                // Network error
+                setError('Network error. Please try again.');
+            } else {
+                setError('An unexpected error occurred.');
+            }
+            console.error('Error joining room:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
+    const handleJoinInputChange = (e) => {
+        setRoomId(e.target.value);
+        setError(''); // Clear error when user types
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            joinRoom();
+        }
+    };
+
+    const handleRoomError = () => {
+        setShowCodeEditor(false);
+        setCurrentRoomId('');
+        setError('Connection to room lost');
+    };
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={leaveRoom}
-                                className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
-                            >
-                                <span className="text-xl">←</span>
-                                <span className="font-medium">Back to Home</span>
-                            </button>
-                            <div className="h-6 w-px bg-gray-300"></div>
-                            <h1 className="text-xl font-semibold text-gray-800">
-                                Code Room
-                            </h1>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-600">Room ID:</span>
-                                <code className="bg-gray-100 px-3 py-1 rounded-md font-mono text-sm text-gray-800">
-                                    {roomId}
-                                </code>
-                                <button
-                                    onClick={copyRoomId}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
-                                    title="Copy Room ID"
-                                >
-                                    📋
-                                </button>
-                            </div>
-                        </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+            <div className="max-w-md w-full mx-4">
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-center border border-white/20">
+                    <div className="mb-8">
+                        <h1 className="text-4xl font-bold text-white mb-4">
+                            Code<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Lab</span>
+                        </h1>
+                        <p className="text-gray-300">
+                            Collaborative coding made simple
+                        </p>
                     </div>
-                </div>
-            </div>
 
-            {/* Copy notification */}
-            {showRoomInfo && (
-                <div className="fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 animate-pulse">
-                    Room ID copied to clipboard!
-                </div>
-            )}
-
-            {/* Main content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                    <CodeEditor roomId={roomId} />
-                </div>
-            </div>
-
-            {/* Room info footer */}
-            <div className="bg-white border-t mt-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                        <div className="flex items-center space-x-6">
-                            <span className="flex items-center space-x-1">
-                                <span>👥</span>
-                                <span>Share the room ID with your team to collaborate</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                                <span>💾</span>
-                                <span>Your code is automatically synced in real-time</span>
-                            </span>
+                    {error && (
+                        <div className="mb-6 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
+                            {error}
                         </div>
-                        <div className="text-xs text-gray-400">
-                            Room: {roomId}
+                    )}
+
+                    <div className="space-y-4">
+                        <button
+                            onClick={createNewRoom}
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        >
+                            <div className="flex items-center justify-center space-x-2">
+                                <span className="text-xl">🚀</span>
+                                <span>{loading ? 'Creating...' : 'Create New Room'}</span>
+                            </div>
+                        </button>
+
+                        <div className="flex items-center space-x-4">
+                            <div className="flex-1 h-px bg-white/30"></div>
+                            <span className="text-gray-300 text-sm">or</span>
+                            <div className="flex-1 h-px bg-white/30"></div>
+                        </div>
+
+                        {!showJoinForm ? (
+                            <button
+                                onClick={() => setShowJoinForm(true)}
+                                className="w-full bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 border border-white/30 hover:border-white/50"
+                            >
+                                <div className="flex items-center justify-center space-x-2">
+                                    <span className="text-xl">🔗</span>
+                                    <span>Join Existing Room</span>
+                                </div>
+                            </button>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={roomId}
+                                        onChange={handleJoinInputChange}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Enter room ID"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-xl focus:border-cyan-400 focus:outline-none transition-colors text-center font-mono text-lg text-white placeholder-gray-400"
+                                        autoFocus
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={joinRoom}
+                                        disabled={!roomId.trim() || loading}
+                                        className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200"
+                                    >
+                                        {loading ? 'Joining...' : 'Join Room'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowJoinForm(false);
+                                            setRoomId('');
+                                            setError('');
+                                        }}
+                                        disabled={loading}
+                                        className="px-4 py-3 text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-white/20">
+                        <div className="flex justify-center space-x-8 text-gray-300 text-sm">
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                <span>Real-time</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                                <span>Multi-language</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                                <span>Collaborative</span>
+                            </div>
                         </div>
                     </div>
                 </div>

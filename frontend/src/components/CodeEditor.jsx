@@ -7,7 +7,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { cpp } from '@codemirror/lang-cpp';
 import { yCollab } from 'y-codemirror.next';
-
+import { useParams } from 'react-router-dom';
 const languageExtensions = {
     javascript: javascript(),
     python: python(),
@@ -15,7 +15,8 @@ const languageExtensions = {
     cpp: cpp()
 };
 
-const CodeEditor = ({ roomId }) => {
+const CodeEditor = () => {
+    const { roomId } = useParams();
     const editorRef = useRef(null);
     const terminalRef = useRef(null);
     const editorViewRef = useRef(null);
@@ -26,7 +27,17 @@ const CodeEditor = ({ roomId }) => {
     const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef(null);
     const isExplicitClose = useRef(false);
+    const [copied, setCopied] = useState(false);
 
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(roomId);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2s
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
     const addToTerminal = (message, type = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
         setTerminalContent(prev => [...prev, { message, type, timestamp }]);
@@ -71,15 +82,14 @@ const CodeEditor = ({ roomId }) => {
 
     useEffect(() => {
         const ydoc = new Y.Doc();
-
         const provider = new HocuspocusProvider({
+            // url: import.meta.env.VITE_HOCUSPOCUS_API_URL,
             url: 'ws://localhost:1234',
             name: roomId,
             document: ydoc,
-            token: 'your-secure-token',
-            parameters: {
-                room: roomId
-            }
+            // parameters: {
+            //     token: 'dummy-token'
+            // }
         });
 
         const ytext = ydoc.getText('codemirror');
@@ -167,13 +177,28 @@ const CodeEditor = ({ roomId }) => {
 
         return () => {
             isExplicitClose.current = true;
-            view.destroy();
-            provider.destroy();
+
+            if (editorViewRef.current) {
+                editorViewRef.current.destroy();
+            }
+
+            if (provider && provider.ws && (
+                provider.ws.readyState === WebSocket.CONNECTING ||
+                provider.ws.readyState === WebSocket.OPEN
+            )) {
+                provider.destroy();
+            }
+
             ydoc.destroy();
-            if (wsRef.current) {
+
+            if (wsRef.current && (
+                wsRef.current.readyState === WebSocket.CONNECTING ||
+                wsRef.current.readyState === WebSocket.OPEN
+            )) {
                 wsRef.current.close();
             }
         };
+
     }, [roomId, language]);
 
     const executeCode = () => {
@@ -223,6 +248,20 @@ const CodeEditor = ({ roomId }) => {
         };
         return names[lang] || lang;
     };
+    // useEffect(() => {
+    //     if (!editorViewRef.current || !ytextRef.current) return;
+
+    //     const newState = EditorState.create({
+    //         doc: ytextRef.current.toString(),
+    //         extensions: [
+    //             basicSetup,
+    //             languageExtensions[language],
+    //             yCollab(ytextRef.current, editorViewRef.current.state.facet(yCollab).awareness),
+    //         ]
+    //     });
+
+    //     editorViewRef.current.setState(newState);
+    // }, [language]);
 
     return (
         <div className="space-y-4">
@@ -251,7 +290,6 @@ const CodeEditor = ({ roomId }) => {
                 >
                     {isExecuting ? '⏳ Running...' : '▶️ Run Code'}
                 </button>
-
                 <button
                     onClick={clearTerminal}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors"
@@ -264,6 +302,15 @@ const CodeEditor = ({ roomId }) => {
                     <span className="text-sm font-medium">
                         {isConnected ? 'Connected' : 'Disconnected'}
                     </span>
+                </div>
+                <div className="flex items-center gap-2 p-2 border rounded bg-gray-100">
+                    <span className="font-mono text-sm">{roomId}</span>
+                    <button
+                        onClick={handleCopy}
+                        className="px-2 py-1 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700"
+                    >
+                        {copied ? 'Copied!' : 'Copy'}
+                    </button>
                 </div>
             </div>
 

@@ -1,128 +1,44 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
+import React from 'react';
+import { Link } from 'react-router-dom';
 const Home = () => {
-    const [roomId, setRoomId] = useState('');
-    const [showJoinForm, setShowJoinForm] = useState(false);
-    const navigate = useNavigate();
-
-    const generateRoomId = () => {
-        const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
-        for (let i = 0; i < 8; i++) {
-            result += characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-        return result;
-    };
-
-    const createNewRoom = () => {
-        const newRoomId = generateRoomId();
-        navigate(`/room/${newRoomId}`);
-    };
-
-    const joinRoom = () => {
-        if (roomId.trim()) {
-            navigate(`/room/${roomId.trim()}`);
-        }
-    };
-
-    const handleJoinInputChange = (e) => {
-        setRoomId(e.target.value);
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            joinRoom();
-        }
-    };
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-            <div className="max-w-md w-full mx-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-                    <div className="mb-8">
-                        <div className="text-6xl mb-4">👥</div>
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                            Collaborative Code Editor
-                        </h1>
-                        <p className="text-gray-600">
-                            Write code together in real-time with your team
-                        </p>
-                    </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+            <div className="text-center">
+                <div className="mb-12">
+                    <h1 className="text-7xl md:text-8xl font-bold text-white mb-6">
+                        Code<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Lab</span>
+                    </h1>
+                    <p className="text-xl md:text-2xl text-gray-300 font-light">
+                        Collaborative coding made simple
+                    </p>
+                </div>
 
-                    <div className="space-y-4">
-                        <button
-                            onClick={createNewRoom}
-                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
-                        >
-                            <div className="flex items-center justify-center space-x-2">
-                                <span className="text-xl">🚀</span>
-                                <span>Create New Room</span>
-                            </div>
-                        </button>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="flex-1 h-px bg-gray-300"></div>
-                            <span className="text-gray-500 text-sm">or</span>
-                            <div className="flex-1 h-px bg-gray-300"></div>
+                <Link to="/start" className="inline-block bg-gradient-to-r from-cyan-400 to-purple-400 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-cyan-500 hover:to-purple-500 transition-colors">
+                    Create a Room<button
+                        className="group relative px-12 py-6 text-2xl font-semibold text-white bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full hover:from-cyan-400 hover:to-purple-500 transform hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-cyan-500/25"
+                    >
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-purple-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                        <div className="relative flex items-center space-x-3">
+                            <span>Start Coding</span>
+                            <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
                         </div>
+                    </button>
+                </Link>
 
-                        {!showJoinForm ? (
-                            <button
-                                onClick={() => setShowJoinForm(true)}
-                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl transition-all duration-200 border-2 border-gray-200 hover:border-gray-300"
-                            >
-                                <div className="flex items-center justify-center space-x-2">
-                                    <span className="text-xl">🔗</span>
-                                    <span>Join Existing Room</span>
-                                </div>
-                            </button>
-                        ) : (
-                            <div className="space-y-3">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={roomId}
-                                        onChange={handleJoinInputChange}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Enter room ID"
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none transition-colors text-center font-mono text-lg"
-                                        autoFocus
-                                    />
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={joinRoom}
-                                        disabled={!roomId.trim()}
-                                        className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200"
-                                    >
-                                        Join Room
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowJoinForm(false);
-                                            setRoomId('');
-                                        }}
-                                        className="px-4 py-3 text-gray-500 hover:text-gray-700 transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                <div className="mt-16 flex justify-center space-x-8 text-gray-400">
+                    <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span>Real-time</span>
                     </div>
-
-                    <div className="mt-8 pt-6 border-t border-gray-200">
-                        <div className="text-sm text-gray-500 space-y-2">
-                            <p className="flex items-center justify-center space-x-2">
-                                <span>💡</span>
-                                <span>Supports JavaScript, Python, C, and C++</span>
-                            </p>
-                            <p className="flex items-center justify-center space-x-2">
-                                <span>⚡</span>
-                                <span>Real-time collaboration with live execution</span>
-                            </p>
-                        </div>
+                    <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span>Multi-language</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        <span>Instant setup</span>
                     </div>
                 </div>
             </div>
