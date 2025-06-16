@@ -13,24 +13,26 @@ export const createExecutionService = () => {
   const languageConfigs = {
     javascript: {
       image: 'node:16',
-      cmd: ['node', '-e'],
+      cmd: ['sh', '-c'],
+      script: 'echo "$CODE_BASE64" | base64 -d > /tmp/program.js && node /tmp/program.js',
       timeout: 5000
     },
     python: {
       image: 'python:3.9',
-      cmd: ['python', '-c'],
+      cmd: ['sh', '-c'],
+      script: 'echo "$CODE_BASE64" | base64 -d > /tmp/program.py && python /tmp/program.py',
       timeout: 5000
     },
     c: {
       image: 'gcc:latest',
       cmd: ['sh', '-c'],
-      script: 'echo "$CODE" > /tmp/program.c && gcc /tmp/program.c -o /tmp/program 2>/tmp/compile_errors.txt && if [ -s /tmp/compile_errors.txt ]; then echo "Compilation errors:" && cat /tmp/compile_errors.txt; exit 1; else echo "Program output:" && /tmp/program 2>/tmp/runtime_errors.txt || (echo "Runtime errors:" && cat /tmp/runtime_errors.txt); fi',
+      script: 'echo "$CODE_BASE64" | base64 -d > /tmp/program.c && gcc /tmp/program.c -o /tmp/program 2>/tmp/compile_errors.txt && if [ -s /tmp/compile_errors.txt ]; then echo "Compilation errors:" && cat /tmp/compile_errors.txt; exit 1; else echo "Program output:" && /tmp/program 2>/tmp/runtime_errors.txt || (echo "Runtime errors:" && cat /tmp/runtime_errors.txt); fi',
       timeout: 10000
     },
     cpp: {
       image: 'gcc:latest',
       cmd: ['sh', '-c'],
-      script: 'echo "$CODE" > /tmp/program.cpp && g++ /tmp/program.cpp -o /tmp/program 2>/tmp/compile_errors.txt && if [ -s /tmp/compile_errors.txt ]; then echo "Compilation errors:" && cat /tmp/compile_errors.txt; exit 1; else echo "Program output:" && /tmp/program 2>/tmp/runtime_errors.txt || (echo "Runtime errors:" && cat /tmp/runtime_errors.txt); fi',
+      script: 'echo "$CODE_BASE64" | base64 -d > /tmp/program.cpp && g++ /tmp/program.cpp -o /tmp/program 2>/tmp/compile_errors.txt && if [ -s /tmp/compile_errors.txt ]; then echo "Compilation errors:" && cat /tmp/compile_errors.txt; exit 1; else echo "Program output:" && /tmp/program 2>/tmp/runtime_errors.txt || (echo "Runtime errors:" && cat /tmp/runtime_errors.txt); fi',
       timeout: 10000
     }
   };
@@ -138,26 +140,20 @@ export const createExecutionService = () => {
           });
         });
 
-        // Prepare command based on language
-        let containerCmd;
-        let containerEnv = [
+        // Prepare environment variables
+        const containerEnv = [
           'LANG=en_US.UTF-8',
-          'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+          'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+          `CODE_BASE64=${Buffer.from(code).toString('base64')}`
         ];
 
-        if (language === 'c' || language === 'cpp') {
-          containerCmd = [...config.cmd, config.script];
-          containerEnv.push(`CODE=${code}`);
-        } else {
-          containerCmd = [...config.cmd, code];
-          if (language === 'javascript') {
-            containerEnv.push('NODE_ENV=production');
-          }
+        if (language === 'javascript') {
+          containerEnv.push('NODE_ENV=production');
         }
 
         container = await docker.createContainer({
           Image: config.image,
-          Cmd: containerCmd,
+          Cmd: [...config.cmd, config.script],
           Tty: false,
           HostConfig: {
             AutoRemove: true,
@@ -201,7 +197,7 @@ export const createExecutionService = () => {
             if (msg.content.trim()) {
               allOutput.push({
                 type: msg.type,
-                content: msg.content.trim()
+                content: msg.content
               });
             }
           });
@@ -220,12 +216,11 @@ export const createExecutionService = () => {
           allOutput.forEach(msg => {
             const lines = msg.content.split('\n');
             lines.forEach(line => {
-              const trimmedLine = line.trim();
-              if (trimmedLine) {
+              if (line.trim()) {
                 if (msg.type === 'stdout') {
-                  stdoutLines.push(trimmedLine);
+                  stdoutLines.push(line);
                 } else {
-                  stderrLines.push(trimmedLine);
+                  stderrLines.push(line);
                 }
               }
             });

@@ -138,7 +138,7 @@ const Room = () => {
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-center border border-white/20">
                     <div className="mb-8">
                         <h1 className="text-4xl font-bold text-white mb-4">
-                            Code<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Lab</span>
+                            Code<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Haven</span>
                         </h1>
                         <p className="text-gray-300">
                             Collaborative coding made simple

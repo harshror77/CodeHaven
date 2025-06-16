@@ -6,7 +6,7 @@ const Home = () => {
             <div className="text-center">
                 <div className="mb-12">
                     <h1 className="text-7xl md:text-8xl font-bold text-white mb-6">
-                        Code<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Lab</span>
+                        Code<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Haven</span>
                     </h1>
                     <p className="text-xl md:text-2xl text-gray-300 font-light">
                         Collaborative coding made simple
@@ -15,7 +15,7 @@ const Home = () => {
 
                 <Link to="/start" className="inline-block bg-gradient-to-r from-cyan-400 to-purple-400 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-cyan-500 hover:to-purple-500 transition-colors">
                     Create a Room<button
-                        className="group relative px-12 py-6 text-2xl font-semibold text-white bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full hover:from-cyan-400 hover:to-purple-500 transform hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-cyan-500/25"
+                        className="ml-4 group relative px-12 py-6 text-2xl font-semibold text-white bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full hover:from-cyan-400 hover:to-purple-500 transform hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-cyan-500/25"
                     >
                         <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-purple-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                         <div className="relative flex items-center space-x-3">
