@@ -26,6 +26,8 @@ const server = http.createServer(app)
 //Routes
 import roomRoutes from './routes/roomRoutes.js';
 app.use('/api/rooms', roomRoutes);
+import fileRoutes from './routes/fileRoutes.js';
+app.use('/api/files', fileRoutes);
 const io = new SocketServer(server, {
   cors: {
     origin: '*',

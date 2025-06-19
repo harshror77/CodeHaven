@@ -59,6 +59,7 @@ export const createExecutionService = () => {
       // Clean up the content - remove non-printable characters except newlines
       const cleanContent = content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
+
       if (cleanContent.trim()) {
         messages.push({
           type: streamType === 1 ? 'stdout' : 'stderr',

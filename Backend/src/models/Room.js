@@ -41,14 +41,14 @@ const roomSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    codeContent: {
-        type: String,
-        default: ''
-    },
-    language: {
-        type: String,
-        default: 'javascript'
-    }
+    // codeContent: {
+    //     type: String,
+    //     default: ''
+    // },
+    // language: {
+    //     type: String,
+    //     default: 'javascript'
+    // }
 }, {
     timestamps: true
 });
@@ -103,6 +103,7 @@ roomSchema.statics.addUserToRoom = async function (roomId, userId, userName = 'A
 };
 
 roomSchema.statics.removeUserFromRoom = async function (roomId, userId) {
+    console.log('JSLFKSLKDJLKA', roomId, userId);
     const room = await this.findActiveRoom(roomId);
     if (!room) return null;
 
@@ -114,8 +115,10 @@ roomSchema.statics.removeUserFromRoom = async function (roomId, userId) {
     const activeUsers = room.users.filter(user => user.isActive);
     if (activeUsers.length === 0) {
         room.isActive = false;
+        // await this.deleteOne({ roomId });
+        return null;
     }
-
+    room.users = activeUsers;
     await room.save();
     return room;
 };

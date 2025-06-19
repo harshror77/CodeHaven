@@ -205,7 +205,7 @@ class RoomService {
                         userName: user.userName,
                         joinedAt: user.joinedAt
                     })),
-                    language: room.language,
+                    // language: room.language,
                     lastActivity: room.lastActivity,
                     hasSpace: activeConnections.size < room.maxUsers
                 }
@@ -242,23 +242,23 @@ class RoomService {
     }
 
     // Update room code content
-    async updateRoomCode(roomId, codeContent, language) {
-        try {
-            const room = await Room.findActiveRoom(roomId);
-            if (!room) {
-                throw new Error('Room not found');
-            }
+    // async updateRoomCode(roomId, codeContent, language) {
+    //     try {
+    //         const room = await Room.findActiveRoom(roomId);
+    //         if (!room) {
+    //             throw new Error('Room not found');
+    //         }
 
-            room.codeContent = codeContent;
-            room.language = language;
-            room.lastActivity = new Date();
-            await room.save();
+    //         room.codeContent = codeContent;
+    //         room.language = language;
+    //         room.lastActivity = new Date();
+    //         await room.save();
 
-            return { success: true };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
-    }
+    //         return { success: true };
+    //     } catch (error) {
+    //         return { success: false, error: error.message };
+    //     }
+    // }
 
     // Get active rooms count
     async getActiveRoomsCount() {
