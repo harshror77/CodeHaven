@@ -146,17 +146,17 @@ const CodeEditor = () => {
         }
     };
 
-    const scheduleAutoSave = () => {
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
+    // const scheduleAutoSave = () => {
+    //     if (saveTimeoutRef.current) {
+    //         clearTimeout(saveTimeoutRef.current);
+    //     }
 
-        saveTimeoutRef.current = setTimeout(() => {
-            if (currentFile && !isLoadingFile.current) {
-                saveCurrentFile();
-            }
-        }, 2000); // Auto-save after 2 seconds of inactivity
-    };
+    //     saveTimeoutRef.current = setTimeout(() => {
+    //         if (currentFile && !isLoadingFile.current) {
+    //             saveCurrentFile();
+    //         }
+    //     }, 2000); // Auto-save after 2 seconds of inactivity
+    // };
 
     // WebSocket connection for code execution
     const connectExecutionWebSocket = () => {
@@ -258,11 +258,11 @@ const CodeEditor = () => {
         ytextRef.current = ytext;
 
         // Listen for changes to trigger auto-save
-        ytext.observe(() => {
-            if (currentFile && !isLoadingFile.current) {
-                scheduleAutoSave();
-            }
-        });
+        // ytext.observe(() => {
+        //     if (currentFile && !isLoadingFile.current) {
+        //         scheduleAutoSave();
+        //     }
+        // });
 
         const state = EditorState.create({
             doc: ytext.toString(),
@@ -306,9 +306,9 @@ const CodeEditor = () => {
             console.log("Selected file: ", file);
 
             // Save current file if there is one
-            if (currentFile && ytextRef.current) {
-                await saveCurrentFile();
-            }
+            // if (currentFile && ytextRef.current) {
+            //     await saveCurrentFile();
+            // }
 
             // Load the file's content from server
             const response = await api.get(`/files/${roomId}/${encodeURIComponent(file.path)}`);
@@ -358,7 +358,7 @@ const CodeEditor = () => {
             }
 
             addToTerminal(`Opened: ${file.name}`, 'info');
-            setLastSaved(file.updatedAt ? new Date(file.updatedAt) : null);
+            // setLastSaved(file.updatedAt ? new Date(file.updatedAt) : null);
 
         } catch (error) {
             console.error("Error loading file:", error);
@@ -443,15 +443,15 @@ const CodeEditor = () => {
         }
     };
 
-    const handleCreateNewFile = () => {
-        if (ytextRef.current) {
-            ytextRef.current.delete(0, ytextRef.current.length);
-        }
-        setCurrentFile(null);
-        setLastSaved(null);
-        addToTerminal('New file created - use File Explorer to save', 'info');
-        setFileExplorerKey(prev => prev + 1);
-    };
+    // const handleCreateNewFile = () => {
+    //     if (ytextRef.current) {
+    //         ytextRef.current.delete(0, ytextRef.current.length);
+    //     }
+    //     setCurrentFile(null);
+    //     setLastSaved(null);
+    //     addToTerminal('New file created - use File Explorer to save', 'info');
+    //     setFileExplorerKey(prev => prev + 1);
+    // };
 
     // Effects
     useEffect(() => {
@@ -634,7 +634,7 @@ const CodeEditor = () => {
                                     </div>
                                 </button>
 
-                                <button
+                                {/* <button
                                     onClick={handleCreateNewFile}
                                     className="bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-xl font-medium transition-all duration-200 border border-white/30 hover:border-white/50"
                                 >
@@ -642,7 +642,7 @@ const CodeEditor = () => {
                                         <span>📄</span>
                                         <span>New File</span>
                                     </div>
-                                </button>
+                                </button> */}
 
                                 <button
                                     onClick={clearTerminal}
@@ -672,59 +672,64 @@ const CodeEditor = () => {
                             </div>
                         </div>
 
-                        {/* Code Editor */}
-                        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 mb-6 overflow-hidden">
-                            <div className="bg-white/5 p-4 border-b border-white/20">
-                                <h3 className="text-white font-semibold flex items-center gap-2">
-                                    Code Editor
-                                    {currentFile && (
-                                        <span className="text-sm text-cyan-300">- {currentFile.name}</span>
-                                    )}
-                                    {isSaving && (
-                                        <span className="text-xs text-yellow-400 animate-pulse">Saving...</span>
-                                    )}
-                                </h3>
-                            </div>
-                            <div ref={editorRef} className="h-[400px] overflow-auto" />
-                        </div>
-
-                        {/* Terminal */}
-                        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-                            <div className="bg-white/5 p-4 border-b border-white/20">
-                                <h4 className="font-semibold text-white">Terminal Output</h4>
-                            </div>
-                            <div
-                                ref={terminalRef}
-                                className="h-48 bg-gray-900/80 text-green-400 p-4 font-mono text-sm overflow-auto"
-                            >
-                                {terminalContent.length === 0 ? (
-                                    <div className="text-gray-500 flex items-center space-x-2">
-                                        <span>💻</span>
-                                        <span>Ready to execute code...</span>
+                        {
+                            currentFile ? (
+                                <>
+                                    {/* Code Editor */}
+                                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 mb-6 overflow-hidden">
+                                        <div className="bg-white/5 p-4 border-b border-white/20">
+                                            <h3 className="text-white font-semibold flex items-center gap-2">
+                                                Code Editor
+                                                {currentFile && (
+                                                    <span className="text-sm text-cyan-300">- {currentFile.name}</span>
+                                                )}
+                                                {isSaving && (
+                                                    <span className="text-xs text-yellow-400 animate-pulse">Saving...</span>
+                                                )}
+                                            </h3>
+                                        </div>
+                                        <div ref={editorRef} className="h-[400px] overflow-auto" />
                                     </div>
-                                ) : (
-                                    terminalContent.map((item, index) => {
-                                        const formatted = formatTerminalLine(item);
-                                        return (
-                                            <div
-                                                key={index}
-                                                className={`mb-1 ${formatted.color} flex items-start space-x-2`}
-                                            >
-                                                <span className="text-xs text-gray-500 min-w-[60px]">
-                                                    {item.timestamp}
-                                                </span>
-                                                <span className="flex-shrink-0">
-                                                    {formatted.icon}
-                                                </span>
-                                                <span className="break-all">
-                                                    {formatted.text}
-                                                </span>
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </div>
+
+                                    {/* Terminal */}
+                                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+                                        <div className="bg-white/5 p-4 border-b border-white/20">
+                                            <h4 className="font-semibold text-white">Terminal Output</h4>
+                                        </div>
+                                        <div
+                                            ref={terminalRef}
+                                            className="h-48 bg-gray-900/80 text-green-400 p-4 font-mono text-sm overflow-auto"
+                                        >
+                                            {terminalContent.length === 0 ? (
+                                                <div className="text-gray-500 flex items-center space-x-2">
+                                                    <span>💻</span>
+                                                    <span>Ready to execute code...</span>
+                                                </div>
+                                            ) : (
+                                                terminalContent.map((item, index) => {
+                                                    const formatted = formatTerminalLine(item);
+                                                    return (
+                                                        <div
+                                                            key={index}
+                                                            className={`mb-1 ${formatted.color} flex items-start space-x-2`}
+                                                        >
+                                                            <span className="text-xs text-gray-500 min-w-[60px]">
+                                                                {item.timestamp}
+                                                            </span>
+                                                            <span className="flex-shrink-0">
+                                                                {formatted.icon}
+                                                            </span>
+                                                            <span className="break-all">
+                                                                {formatted.text}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div></>
+                            ) : (null)
+                        }
                     </div>
                 </div>
 
