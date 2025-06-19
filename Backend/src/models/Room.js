@@ -113,13 +113,12 @@ roomSchema.statics.removeUserFromRoom = async function (roomId, userId) {
     }
 
     const activeUsers = room.users.filter(user => user.isActive);
-    if (activeUsers.length === 0) {
-        room.isActive = false;
-        // await this.deleteOne({ roomId });
-        return null;
-    }
     room.users = activeUsers;
     await room.save();
+    if (activeUsers.length === 0) {
+        room.isActive = false;
+        return null;
+    }
     return room;
 };
 
