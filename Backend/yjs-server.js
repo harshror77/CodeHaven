@@ -1,6 +1,7 @@
 import { Server } from '@hocuspocus/server'
 import mongoose from 'mongoose'
 import { Room } from './src/models/Room.js'
+import { File } from './src/models/File.js'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -8,29 +9,45 @@ dotenv.config()
 // Track active connections per room
 const roomConnections = new Map() // roomId -> Set of WebSocket objects
 
+// Parse document name into roomId and filePath
+function parseDocumentName(docName) {
+  const parts = docName.split('::')
+  if (parts.length < 2) {
+    return {
+      roomId: docName,
+      filePath: null,
+      isValid: false
+    }
+  }
+
+  return {
+    roomId: parts[0],
+    filePath: parts.slice(1).join('::'), // Handle paths with ::
+    isValid: true
+  }
+}
+
 const server = new Server({
   port: 1234,
   name: 'collab-server',
   debounce: 200,
 
-  // Uncomment and adapt if you need authentication
-  // async onAuthenticate({ token }) {
-  //   if (token !== 'dummy-token') {
-  //     throw new Error('Invalid token')
-  //   }
-  // },
-
   async onConnect(data) {
-    const roomId = data.documentName
+    const { roomId, filePath, isValid } = parseDocumentName(data.documentName)
     const ws = data.connection
 
-    console.log(`📥 Connection attempt to room: ${roomId}`)
+    if (!isValid) {
+      console.log(`⚠️ Invalid document format: ${data.documentName}`)
+      throw new Error('Invalid document format. Use roomId::filePath')
+    }
+
+    console.log(`📥 Connection to room: ${roomId}, file: ${filePath}`)
 
     try {
       // Verify room exists and is active
       const room = await Room.findActiveRoom(roomId)
       if (!room) {
-        console.log(`❌ Room ${roomId} not found in database`)
+        console.log(`❌ Room ${roomId} not found`)
         throw new Error('Room not found')
       }
 
@@ -46,23 +63,23 @@ const server = new Server({
       currentConnections.add(ws)
       roomConnections.set(roomId, currentConnections)
 
-      console.log(`✅ User connected to room ${roomId}. Active connections: ${currentConnections.size}/2`)
+      console.log(`✅ User connected to room ${roomId}. Active: ${currentConnections.size}/2`)
 
       // Update lastActivity timestamp in DB
       room.lastActivity = new Date()
       await room.save()
 
     } catch (error) {
-      console.error(`❌ Connection rejected for room ${roomId}:`, error.message)
+      console.error(`❌ Connection rejected: ${error.message}`)
       throw error
     }
   },
 
   async onDisconnect(data) {
-    const roomId = data.documentName
+    const { roomId, filePath } = parseDocumentName(data.documentName)
     const ws = data.connection
 
-    console.log(`📤 Disconnection from room: ${roomId}`)
+    console.log(`📤 Disconnection from room: ${roomId}, file: ${filePath}`)
 
     try {
       const currentConnections = roomConnections.get(roomId)
@@ -86,7 +103,7 @@ const server = new Server({
           }
         } else {
           roomConnections.set(roomId, currentConnections)
-          console.log(`👋 User disconnected from room ${roomId}. Remaining connections: ${currentConnections.size}/2`)
+          console.log(`👋 User disconnected. Remaining: ${currentConnections.size}/2`)
         }
       }
 
@@ -98,25 +115,76 @@ const server = new Server({
       }
 
     } catch (error) {
-      console.error(`❌ Error handling disconnection for room ${roomId}:`, error.message)
+      console.error(`❌ Disconnect error: ${error.message}`)
     }
   },
 
   async onChange(data) {
-    const roomId = data.documentName
+    const { roomId, filePath } = parseDocumentName(data.documentName)
+
+    if (!filePath) {
+      console.log('⚠️ No filePath in document name')
+      return
+    }
 
     try {
+      const content = data.document.getText('codemirror').toString()
+
+      // Update the specific file in the database
+      const updatedFile = await File.findOneAndUpdate(
+        { roomId, path: filePath },
+        {
+          content,
+          updatedAt: new Date()
+        },
+        { new: true, upsert: false }
+      )
+
+      if (updatedFile) {
+        console.log(`💾 Updated file: ${filePath} in room ${roomId}`)
+      } else {
+        console.log(`⚠️ File not found: ${filePath} in room ${roomId}`)
+      }
+
+      // Update room's last activity
       const room = await Room.findActiveRoom(roomId)
       if (room) {
         room.lastActivity = new Date()
-        // Optionally store the latest code
-        const content = data.document.getText('codemirror').toString()
-        room.codeContent = content
         await room.save()
       }
+
     } catch (error) {
-      console.error(`❌ Error updating room ${roomId} on change:`, error.message)
+      console.error(`❌ File update error: ${error.message}`)
     }
+  },
+
+  async onLoadDocument(data) {
+    const { roomId, filePath } = parseDocumentName(data.documentName)
+
+    if (!filePath) {
+      console.log('⚠️ No filePath - using empty document')
+      return
+    }
+
+    try {
+      // Load file content from database
+      const file = await File.findOne({ roomId, path: filePath })
+
+      if (file) {
+        console.log(`📂 Loading file: ${filePath} in room ${roomId}`)
+        const ydoc = data.document
+        const ytext = ydoc.getText('codemirror')
+
+        // Only initialize if empty
+        if (ytext.length === 0 && file.content) {
+          ytext.insert(0, file.content)
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Document load error: ${error.message}`)
+    }
+
+    return data.document
   }
 })
 
@@ -127,12 +195,18 @@ setInterval(async () => {
     if (result.deletedCount > 0) {
       console.log(`🧹 Cleaned up ${result.deletedCount} old rooms`)
     }
+
+    // Also clean up old files
+    const fileResult = await File.cleanupOrphanedFiles()
+    if (fileResult.deletedCount > 0) {
+      console.log(`🧹 Cleaned up ${fileResult.deletedCount} orphaned files`)
+    }
   } catch (error) {
-    console.error('❌ Error cleaning up old rooms:', error)
+    console.error('❌ Cleanup error:', error)
   }
 }, 60 * 60 * 1000) // Every hour
 
-// Utility helpers (if you need them elsewhere)
+// Utility helpers
 export const getRoomConnectionCount = (roomId) => {
   const connections = roomConnections.get(roomId)
   return connections ? connections.size : 0
@@ -142,6 +216,5 @@ export const hasRoomSpace = (roomId) => {
   const connections = roomConnections.get(roomId)
   return !connections || connections.size < 2
 }
-
 
 export default server

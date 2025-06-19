@@ -36,7 +36,7 @@ const Room = () => {
             if (data.success) {
                 setCurrentRoomId(data.data.roomId);
                 setShowCodeEditor(true);
-                Navigate(`/room/${data.data.roomId}`);
+                Navigate(`/room/${data.data.roomId}/${userId}`);
             } else {
                 setError(data.message || 'Failed to create room');
             }
@@ -95,7 +95,7 @@ const Room = () => {
             if (joinData.success) {
                 setCurrentRoomId(roomId.trim());
                 setShowCodeEditor(true);
-                Navigate(`/room/${roomId}`);
+                Navigate(`/room/${roomId}/${userId}`);
             } else {
                 setError(joinData.message || 'Failed to join room');
             }
