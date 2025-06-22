@@ -179,3 +179,69 @@ export const getAllActiveRooms = async (req, res) => {
         });
     }
 };
+
+export const getUserRooms = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const room = await roomService.getUserRoom(userId);
+        // console.log(room);
+        if (!room) {
+            return res.status(404).json({
+                success: false,
+                message: 'No active room found for this user'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: room
+        });
+    } catch (error) {
+        console.error('Error getting user room:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get user room'
+        });
+    }
+}
+
+export const deleteRoom = async (req, res) => {
+    try {
+        const { roomId } = req.params;
+
+        if (!roomId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Room ID is required'
+            });
+        }
+
+        const result = await roomService.deleteRoom(roomId);
+        console.log('Result:', result);
+        if (!result.success) {
+            return res.status(404).json({
+                success: false,
+                message: result.error
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Room deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting room:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete room'
+        });
+    }
+}
