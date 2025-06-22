@@ -18,7 +18,7 @@ import {
 
 // Use the same API base URL as CodeEditor
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: import.meta.env.VITE_BACKEND_URL,
     headers: { 'Content-Type': 'application/json' },
 });
 

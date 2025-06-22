@@ -13,10 +13,12 @@ import axios from 'axios';
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import FileExplorer from './FileSidebar.jsx';
-
+import Chat from './ChatComponenet.jsx';
+import { useSelector } from 'react-redux';
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api',
-    headers: {
+    baseURL: import.meta.env.VITE_BACKEND_URL,
+    headers:
+    {
         'Content-Type': 'application/json',
     }
 });
@@ -57,7 +59,7 @@ const CodeEditor = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState(null);
     const [fileExplorerKey, setFileExplorerKey] = useState(0);
-
+    const userInfo = useSelector((state) => state.auth.userData);
     // Utility functions
     const addToTerminal = (message, type = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
@@ -421,7 +423,7 @@ const CodeEditor = () => {
                 if (wsRef.current) {
                     wsRef.current.close();
                 }
-                navigate('/start');
+                navigate('/');
             } else {
                 addToTerminal(`Failed to leave room: ${response.data.message}`, 'error');
             }
@@ -543,13 +545,20 @@ const CodeEditor = () => {
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
             <div className="max-w-7xl mx-auto">
                 <div className="flex gap-6 mb-6">
-                    {/* File Explorer */}
-                    <FileExplorer
-                        key={fileExplorerKey}
-                        roomId={roomId}
-                        onFileSelect={handleFileSelect}
-                    />
-
+                    <div className="flex flex-col">
+                        {/* File Explorer */}
+                        <FileExplorer
+                            key={fileExplorerKey}
+                            roomId={roomId}
+                            onFileSelect={handleFileSelect}
+                        />
+                        {/* Chat Component */}
+                        <Chat
+                            roomId={roomId}
+                            userId={userId}
+                            username={userInfo.username}
+                        />
+                    </div>
                     <div className="flex-1">
                         {/* Header */}
                         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 mb-6 p-6">
