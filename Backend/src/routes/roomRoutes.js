@@ -5,7 +5,9 @@ import {
     joinRoom,
     leaveRoom,
     getRoomInfo,
-    getAllActiveRooms
+    getAllActiveRooms,
+    getUserRooms,
+    deleteRoom
 } from '../controllers/roomController.js';
 
 const router = express.Router();
@@ -25,6 +27,11 @@ router.post('/:roomId/leave', leaveRoom);
 // Get room information
 router.get('/:roomId/info', getRoomInfo);
 
+// Get rooms for a specific user
+router.route('/getUserRoom/:userId').get(getUserRooms)
+
+//delete a room
+router.route('/:roomId/delete').delete(deleteRoom);
 // Admin: Get all active rooms
 router.get('/admin/active', getAllActiveRooms);
 
