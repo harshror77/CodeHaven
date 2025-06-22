@@ -25,22 +25,26 @@ const server = http.createServer(app)
 
 //Routes
 import roomRoutes from './routes/roomRoutes.js';
-app.use('/api/rooms', roomRoutes);
 import fileRoutes from './routes/fileRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
+
+app.use('/api/rooms', roomRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/chat', chatRoutes);
+
+// Socket.io setup
 const io = new SocketServer(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 })
-io.on('connection', (socket) => {
-  console.log("Socket.io connected ", socket.id)
 
-  socket.on('disconnect', () => {
-    console.log('Socket.io disconnected', socket.id)
-  })
-})
+// Import and use chat socket handler
+import { handleChatSocket } from './socket/socket.js';
+handleChatSocket(io);
 
-export { server }
-
+export { server, io }
