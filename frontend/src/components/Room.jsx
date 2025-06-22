@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import CodeEditor from './CodeEditor.jsx'; // Import your existing CodeEditor component
 import { useNavigate } from "react-router-dom";
+import { useSelector } from 'react-redux';
 // Configure axios base URL for your backend
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: import.meta.env.VITE_BACKEND_URL,
     headers: {
         'Content-Type': 'application/json',
     }
@@ -17,9 +18,10 @@ const Room = () => {
     const [error, setError] = useState('');
     const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [currentRoomId, setCurrentRoomId] = useState('');
-    // Generate a simple user ID (in a real app, this would come from authentication)
-    const userId = `user-${Math.random().toString(36).substr(2, 9)}`;
-    const userName = `User${Math.floor(Math.random() * 1000)}`;
+    const userData = useSelector((state) => state.auth.userData);
+    console.log("USER DATA: ", userData);
+    const userId = userData?._id;
+    const userName = userData?.username;
     const Navigate = useNavigate();
     const createNewRoom = async () => {
         setLoading(true);
