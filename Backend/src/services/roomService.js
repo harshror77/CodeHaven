@@ -1,6 +1,6 @@
 import { Room } from '../models/Room.js';
 import { v4 as uuidv4 } from 'uuid';
-
+import mongoose from 'mongoose';
 class RoomService {
     constructor() {
         this.activeConnections = new Map(); // roomId -> Set of connection IDs
@@ -333,6 +333,40 @@ class RoomService {
             hasSpace: !connections || connections.size < 2
         };
     }
+    async getUserRoom(userId) {
+        // console.log("getUserRoom called for:", userId);
+
+        const userrooms = await Room.aggregate([
+            {
+                $match: {
+                    createdBy: new mongoose.Types.ObjectId(userId)
+                }
+            }
+        ]);
+
+        // console.log("userrooms:", userrooms);
+        return userrooms;
+    }
+
+    async deleteRoom(roomId) {
+        console.log('Deleting room:', roomId);
+        try {
+            const room = await Room.findOneAndDelete(
+                { roomId: roomId }
+            );
+            console.log('Room deleted:', room);
+            if (!room) {
+                return { success: false, message: 'Room not found' };
+            }
+            return { success: true, message: 'Room deleted successfully' };
+        } catch (error) {
+            console.error('Error deleting room:', error);
+            return { success: false, message: 'Failed to delete room' };
+        }
+    }
 }
+
+
+
 
 export const roomService = new RoomService();
