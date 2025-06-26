@@ -1,6 +1,5 @@
 import { File } from '../models/File.js';
 
-// GET all files/folders for a room
 export const getRoomFiles = async (req, res) => {
     try {
         const { roomId } = req.params;
@@ -11,7 +10,6 @@ export const getRoomFiles = async (req, res) => {
     }
 };
 
-// POST create new file/folder
 export const createFileOrFolder = async (req, res) => {
     try {
         const { roomId, name, path, type, content = '', language = null } = req.body;
@@ -26,7 +24,6 @@ export const createFileOrFolder = async (req, res) => {
     }
 };
 
-// ✅ PUT update file content (regex route captures)
 export const updateFile = async (req, res) => {
     try {
         const roomId = req.params[0];
@@ -63,7 +60,6 @@ export const getFileContent = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 }
-// ✅ DELETE file/folder (regex route captures)
 export const deleteFileOrFolder = async (req, res) => {
     try {
         const roomId = req.params[0];

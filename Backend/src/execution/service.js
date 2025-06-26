@@ -56,7 +56,7 @@ export const createExecutionService = () => {
       const payload = buffer.slice(offset + 8, offset + 8 + size);
       const content = payload.toString('utf8');
 
-      // Clean up the content - remove non-printable characters except newlines
+
       const cleanContent = content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
 
@@ -79,7 +79,7 @@ export const createExecutionService = () => {
     let cleanOutput = output.trim();
 
     if (isError) {
-      // Format GCC errors
+
       cleanOutput = cleanOutput
         .replace(/\/tmp\/program\.(c|cpp):/g, 'Line ')
         .replace(/undefined reference to/g, 'Undefined function/variable:')
@@ -130,7 +130,7 @@ export const createExecutionService = () => {
 
       let container;
       try {
-        // Pull the image first
+
         await new Promise((resolve, reject) => {
           docker.pull(config.image, (err, stream) => {
             if (err) return reject(err);
@@ -141,7 +141,7 @@ export const createExecutionService = () => {
           });
         });
 
-        // Prepare environment variables
+
         const containerEnv = [
           'LANG=en_US.UTF-8',
           'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
@@ -158,10 +158,10 @@ export const createExecutionService = () => {
           Tty: false,
           HostConfig: {
             AutoRemove: true,
-            Memory: 100 * 1024 * 1024, // 100MB
-            MemorySwap: 200 * 1024 * 1024, // 200MB
+            Memory: 100 * 1024 * 1024,
+            MemorySwap: 200 * 1024 * 1024,
             CpuPeriod: 100000,
-            CpuQuota: 50000, // 50% of CPU
+            CpuQuota: 50000,
             CpuShares: 512,
             BlkioWeight: 300,
             OomKillDisable: false,
@@ -186,12 +186,12 @@ export const createExecutionService = () => {
         let allOutput = [];
         let buffer = Buffer.alloc(0);
 
-        // Handle stream data
+
         stream.on('data', (chunk) => {
           hasOutput = true;
           buffer = Buffer.concat([buffer, chunk]);
 
-          // Try to parse complete messages from buffer
+
           const messages = parseDockerStream(buffer);
 
           messages.forEach(msg => {
@@ -203,14 +203,14 @@ export const createExecutionService = () => {
             }
           });
 
-          // Keep any remaining incomplete data in buffer
+
           if (messages.length > 0) {
             buffer = Buffer.alloc(0);
           }
         });
 
         stream.on('end', () => {
-          // Process all collected output
+
           const stdoutLines = [];
           const stderrLines = [];
 
@@ -227,14 +227,14 @@ export const createExecutionService = () => {
             });
           });
 
-          // Send stdout
+
           if (stdoutLines.length > 0) {
             stdoutLines.forEach(line => {
               sendMessage(ws, 'output', line, false);
             });
           }
 
-          // Send stderr
+
           if (stderrLines.length > 0) {
             const formattedErrors = stderrLines.map(line => formatOutput(line, true));
             formattedErrors.forEach(line => {
@@ -251,7 +251,7 @@ export const createExecutionService = () => {
           sendMessage(ws, 'end', '✅ Execution completed');
         });
 
-        // Timeout handling
+
         const timeout = setTimeout(async () => {
           try {
             await container.stop();
@@ -261,7 +261,7 @@ export const createExecutionService = () => {
           }
         }, config.timeout);
 
-        // Clean up on WS close
+
         ws.on('close', async () => {
           clearTimeout(timeout);
           try {

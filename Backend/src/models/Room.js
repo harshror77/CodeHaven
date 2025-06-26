@@ -41,14 +41,6 @@ const roomSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    // codeContent: {
-    //     type: String,
-    //     default: ''
-    // },
-    // language: {
-    //     type: String,
-    //     default: 'javascript'
-    // }
 }, {
     timestamps: true
 });
@@ -103,13 +95,10 @@ roomSchema.statics.addUserToRoom = async function (roomId, userId, userName = 'A
 };
 
 roomSchema.statics.removeUserFromRoom = async function (roomId, userId) {
-    console.log('JSLFKSLKDJLKA', roomId, userId);
     const room = await this.findActiveRoom(roomId);
-    // console.log('Room found:', room);
     if (!room) return null;
 
     const user = room.users.find(user => user.userId.toString() === userId.toString());
-    // console.log('User found:', user);
     if (user) {
         user.isActive = false;
     }

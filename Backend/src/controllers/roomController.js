@@ -1,6 +1,5 @@
 import { roomService } from '../services/roomService.js';
 
-// Create a new room
 export const createRoom = async (req, res) => {
     try {
         const { userId, userName } = req.body;
@@ -32,7 +31,6 @@ export const createRoom = async (req, res) => {
     }
 };
 
-// Check if room exists and is available
 export const checkRoom = async (req, res) => {
     try {
         const { roomId } = req.params;
@@ -64,7 +62,6 @@ export const checkRoom = async (req, res) => {
     }
 };
 
-// Join a room
 export const joinRoom = async (req, res) => {
     try {
         const { roomId } = req.params;
@@ -103,7 +100,6 @@ export const joinRoom = async (req, res) => {
     }
 };
 
-// Leave a room
 export const leaveRoom = async (req, res) => {
     try {
         const { roomId } = req.params;
@@ -131,7 +127,6 @@ export const leaveRoom = async (req, res) => {
     }
 };
 
-// Get room information
 export const getRoomInfo = async (req, res) => {
     try {
         const { roomId } = req.params;
@@ -158,7 +153,6 @@ export const getRoomInfo = async (req, res) => {
     }
 };
 
-// Get all active rooms (admin endpoint)
 export const getAllActiveRooms = async (req, res) => {
     try {
         const rooms = await roomService.getAllActiveRooms();
@@ -192,7 +186,6 @@ export const getUserRooms = async (req, res) => {
         }
 
         const room = await roomService.getUserRoom(userId);
-        // console.log(room);
         if (!room) {
             return res.status(404).json({
                 success: false,

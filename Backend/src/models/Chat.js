@@ -30,7 +30,6 @@ const chatSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for efficient querying
 chatSchema.index({ roomId: 1, timestamp: -1 });
 
 const Chat = mongoose.model('Chat', chatSchema);

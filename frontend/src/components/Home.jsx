@@ -76,7 +76,6 @@ const Home = () => {
         setError('');
 
         try {
-            // First check if room exists
             const checkResponse = await api.get(`/rooms/${roomId.trim()}/check`);
             const checkData = checkResponse.data;
 
@@ -92,7 +91,6 @@ const Home = () => {
                 return;
             }
 
-            // Join the room
             const joinResponse = await api.post(`/rooms/${roomId.trim()}/join`, {
                 userId: userId,
                 userName: userName
@@ -188,7 +186,7 @@ const Home = () => {
                                     {/* Delete button with enhanced styling */}
                                     <button
                                         onClick={(e) => {
-                                            e.stopPropagation(); // prevent click bubbling to Link
+                                            e.stopPropagation();
                                             e.preventDefault();
                                             handleDeleteClick(room);
                                         }}
@@ -198,7 +196,7 @@ const Home = () => {
                                         <X size={16} />
                                     </button>
 
-                                    {/* Make the rest of the card clickable */}
+
                                     <Link
                                         to={`/room/${room.roomId}/${userId}`}
                                         className="block relative z-10"

@@ -17,10 +17,8 @@ function App() {
         console.log(userData);
         if (userData.data.data) {
           dispatch(login(userData.data.data));
-          // connectSocket(userData.data.message._id);
         }
         else {
-          // disconnectSocket();
           dispatch(logout());
           navigate("/login");
         }

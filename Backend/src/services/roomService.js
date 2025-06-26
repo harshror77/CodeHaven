@@ -5,15 +5,13 @@ class RoomService {
     constructor() {
         this.activeConnections = new Map(); // roomId -> Set of connection IDs
         this.userConnections = new Map(); // userId -> roomId
-        this.roomLocks = new Map(); // roomId -> Promise (for preventing race conditions)
+        this.roomLocks = new Map(); // roomId -> Promise 
 
-        // Clean up old rooms every hour
         setInterval(() => {
             this.cleanupOldRooms();
         }, 60 * 60 * 1000);
     }
 
-    // Generate unique room ID
     generateRoomId() {
         const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
         let result = '';
@@ -23,23 +21,20 @@ class RoomService {
         return result;
     }
 
-    // Create a new room with proper concurrency control
     async createRoom(creatorId, userName = 'Anonymous') {
         let roomId;
         let attempts = 0;
-        const maxAttempts = 20; // Increased attempts
+        const maxAttempts = 20;
 
-        // Ensure unique room ID with database check
+
         do {
             roomId = this.generateRoomId();
             attempts++;
 
-            // Check both database and active connections
             const existingRoom = await Room.findActiveRoom(roomId);
             const hasActiveConnections = this.activeConnections.has(roomId);
 
             if (!existingRoom && !hasActiveConnections) {
-                // Double-check by trying to create the room
                 try {
                     const room = new Room({
                         roomId,
@@ -55,7 +50,6 @@ class RoomService {
 
                     await room.save();
 
-                    // Track connection
                     this.activeConnections.set(roomId, new Set([creatorId]));
                     this.userConnections.set(creatorId, roomId);
 
@@ -63,7 +57,6 @@ class RoomService {
                     return room;
 
                 } catch (error) {
-                    // If duplicate key error, try again
                     if (error.code === 11000) {
                         console.log(`⚠️ Duplicate room ID detected: ${roomId}, trying again...`);
                         continue;
@@ -76,9 +69,7 @@ class RoomService {
         throw new Error('Unable to generate unique room ID after multiple attempts');
     }
 
-    // Join existing room with proper locking
     async joinRoom(roomId, userId, userName = 'Anonymous') {
-        // Create a lock for this room to prevent race conditions
         const lockKey = `join_${roomId}`;
         if (this.roomLocks.has(lockKey)) {
             await this.roomLocks.get(lockKey);
@@ -97,7 +88,6 @@ class RoomService {
 
     async _joinRoomInternal(roomId, userId, userName) {
         try {
-            // Check if room exists and is active
             const room = await Room.findActiveRoom(roomId);
             if (!room) {
                 return {
@@ -106,13 +96,10 @@ class RoomService {
                 };
             }
 
-            // Check current active connections (real-time check)
             const currentConnections = this.activeConnections.get(roomId) || new Set();
 
-            // Count active users in database
             const activeUsersInDb = room.users.filter(user => user.isActive).length;
 
-            // Use the higher count for safety
             const maxActiveUsers = Math.max(currentConnections.size, activeUsersInDb);
 
             if (maxActiveUsers >= room.maxUsers && !currentConnections.has(userId)) {
@@ -122,13 +109,11 @@ class RoomService {
                 };
             }
 
-            // Check if user is already in another room
             const existingRoom = this.userConnections.get(userId);
             if (existingRoom && existingRoom !== roomId) {
                 await this.leaveRoom(existingRoom, userId);
             }
 
-            // Add user to room in database
             const updatedRoom = await Room.addUserToRoom(roomId, userId, userName);
 
             // Track connection
@@ -153,10 +138,8 @@ class RoomService {
         }
     }
 
-    // Leave room
     async leaveRoom(roomId, userId) {
         try {
-            // Remove from active connections
             const connections = this.activeConnections.get(roomId);
             if (connections) {
                 connections.delete(userId);
@@ -169,7 +152,6 @@ class RoomService {
             }
             this.userConnections.delete(userId);
 
-            // Update database
             await Room.removeUserFromRoom(roomId, userId);
 
             console.log(`👋 User ${userId} left room ${roomId}`);
@@ -180,7 +162,6 @@ class RoomService {
         }
     }
 
-    // Get room info
     async getRoomInfo(roomId) {
         try {
             const room = await Room.findActiveRoom(roomId);
@@ -205,7 +186,6 @@ class RoomService {
                         userName: user.userName,
                         joinedAt: user.joinedAt
                     })),
-                    // language: room.language,
                     lastActivity: room.lastActivity,
                     hasSpace: activeConnections.size < room.maxUsers
                 }
@@ -215,7 +195,6 @@ class RoomService {
         }
     }
 
-    // Check if room is available for joining
     async isRoomAvailable(roomId) {
         try {
             const room = await Room.findActiveRoom(roomId);
@@ -241,36 +220,15 @@ class RoomService {
         }
     }
 
-    // Update room code content
-    // async updateRoomCode(roomId, codeContent, language) {
-    //     try {
-    //         const room = await Room.findActiveRoom(roomId);
-    //         if (!room) {
-    //             throw new Error('Room not found');
-    //         }
 
-    //         room.codeContent = codeContent;
-    //         room.language = language;
-    //         room.lastActivity = new Date();
-    //         await room.save();
-
-    //         return { success: true };
-    //     } catch (error) {
-    //         return { success: false, error: error.message };
-    //     }
-    // }
-
-    // Get active rooms count
     async getActiveRoomsCount() {
         return await Room.countDocuments({ isActive: true });
     }
 
-    // Clean up old rooms
     async cleanupOldRooms() {
         try {
             const result = await Room.cleanupOldRooms();
 
-            // Also clean up stale connections
             const staleRooms = [];
             for (const [roomId, connections] of this.activeConnections.entries()) {
                 const room = await Room.findActiveRoom(roomId);
@@ -291,7 +249,6 @@ class RoomService {
         }
     }
 
-    // Handle connection disconnect
     async handleDisconnect(userId) {
         const roomId = this.userConnections.get(userId);
         if (roomId) {
@@ -299,7 +256,6 @@ class RoomService {
         }
     }
 
-    // Get all active rooms (for admin purposes)
     async getAllActiveRooms() {
         try {
             const rooms = await Room.find({ isActive: true })
@@ -325,7 +281,6 @@ class RoomService {
         }
     }
 
-    // Get connection status for a room
     getConnectionStatus(roomId) {
         const connections = this.activeConnections.get(roomId);
         return {
@@ -334,7 +289,6 @@ class RoomService {
         };
     }
     async getUserRoom(userId) {
-        // console.log("getUserRoom called for:", userId);
 
         const userrooms = await Room.aggregate([
             {
@@ -344,7 +298,6 @@ class RoomService {
             }
         ]);
 
-        // console.log("userrooms:", userrooms);
         return userrooms;
     }
 

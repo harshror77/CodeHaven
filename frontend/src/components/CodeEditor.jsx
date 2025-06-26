@@ -34,7 +34,6 @@ const CodeEditor = () => {
     const { roomId, userId } = useParams();
     const navigate = useNavigate();
 
-    // Refs
     const editorRef = useRef(null);
     const terminalRef = useRef(null);
     const editorViewRef = useRef(null);
@@ -47,7 +46,6 @@ const CodeEditor = () => {
     const saveTimeoutRef = useRef(null);
     const isLoadingFile = useRef(false);
 
-    // State
     const [language, setLanguage] = useState('javascript');
     const [isExecuting, setIsExecuting] = useState(false);
     const [terminalContent, setTerminalContent] = useState([]);
@@ -60,7 +58,6 @@ const CodeEditor = () => {
     const [lastSaved, setLastSaved] = useState(null);
     const [fileExplorerKey, setFileExplorerKey] = useState(0);
     const userInfo = useSelector((state) => state.auth.userData);
-    // Utility functions
     const addToTerminal = (message, type = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
         setTerminalContent(prev => [...prev, { message, type, timestamp }]);
@@ -115,7 +112,6 @@ const CodeEditor = () => {
         return names[lang] || lang;
     };
 
-    // Copy room ID functionality
     const handleCopy = async () => {
         try {
             await navigator.clipboard.writeText(roomId);
@@ -126,7 +122,6 @@ const CodeEditor = () => {
         }
     };
 
-    // Auto-save functionality
     const saveCurrentFile = async () => {
         if (!currentFile || !ytextRef.current || isSaving) return;
 
@@ -148,19 +143,7 @@ const CodeEditor = () => {
         }
     };
 
-    // const scheduleAutoSave = () => {
-    //     if (saveTimeoutRef.current) {
-    //         clearTimeout(saveTimeoutRef.current);
-    //     }
 
-    //     saveTimeoutRef.current = setTimeout(() => {
-    //         if (currentFile && !isLoadingFile.current) {
-    //             saveCurrentFile();
-    //         }
-    //     }, 2000); // Auto-save after 2 seconds of inactivity
-    // };
-
-    // WebSocket connection for code execution
     const connectExecutionWebSocket = () => {
         if (wsRef.current) {
             wsRef.current.close();
@@ -220,9 +203,7 @@ const CodeEditor = () => {
         };
     };
 
-    // Hocuspocus connection management
     const connectHocuspocus = (documentName) => {
-        // Clean up existing provider
         if (providerRef.current) {
             providerRef.current.destroy();
             providerRef.current = null;
@@ -248,9 +229,7 @@ const CodeEditor = () => {
         return { ydoc, provider };
     };
 
-    // Editor creation and management
     const createEditor = (ydoc, provider) => {
-        // Clean up existing editor
         if (editorViewRef.current) {
             editorViewRef.current.destroy();
             editorViewRef.current = null;
@@ -259,12 +238,6 @@ const CodeEditor = () => {
         const ytext = ydoc.getText('codemirror');
         ytextRef.current = ytext;
 
-        // Listen for changes to trigger auto-save
-        // ytext.observe(() => {
-        //     if (currentFile && !isLoadingFile.current) {
-        //         scheduleAutoSave();
-        //     }
-        // });
 
         const state = EditorState.create({
             doc: ytext.toString(),
@@ -298,7 +271,6 @@ const CodeEditor = () => {
         return { ytext, view };
     };
 
-    // File handling
     const handleFileSelect = async (file) => {
         if (isLoadingFile.current) return;
 
@@ -307,43 +279,31 @@ const CodeEditor = () => {
         try {
             console.log("Selected file: ", file);
 
-            // Save current file if there is one
-            // if (currentFile && ytextRef.current) {
-            //     await saveCurrentFile();
-            // }
 
-            // Load the file's content from server
             const response = await api.get(`/files/${roomId}/${encodeURIComponent(file.path)}`);
             const content = response.data.content || '';
 
-            // Connect to Hocuspocus with unique document name
-            // In CodeEditor.jsx
+
             const documentName = `${roomId}::${file.path}`;
             const { ydoc, provider } = connectHocuspocus(documentName);
 
-            // Wait for provider to be ready
             await new Promise((resolve) => {
                 provider.on('status', ({ status }) => {
                     if (status === 'connected') {
                         resolve();
                     }
                 });
-                // Timeout fallback
                 setTimeout(resolve, 1000);
             });
 
-            // Create editor with new document
             const { ytext } = createEditor(ydoc, provider);
 
-            // Set content in Yjs document if it's empty
             if (ytext.length === 0 && content) {
                 ytext.insert(0, content);
             }
 
-            // Update current file and language
             setCurrentFile(file);
 
-            // Determine language from file extension
             let newLanguage = language;
             if (file.language) {
                 newLanguage = file.language;
@@ -360,7 +320,6 @@ const CodeEditor = () => {
             }
 
             addToTerminal(`Opened: ${file.name}`, 'info');
-            // setLastSaved(file.updatedAt ? new Date(file.updatedAt) : null);
 
         } catch (error) {
             console.error("Error loading file:", error);
@@ -370,7 +329,6 @@ const CodeEditor = () => {
         }
     };
 
-    // Code execution
     const executeCode = () => {
         if (isExecuting || !isConnected) {
             return;
@@ -400,13 +358,11 @@ const CodeEditor = () => {
         }
     };
 
-    // Terminal management
     const clearTerminal = () => {
         setTerminalContent([]);
         addToTerminal('Terminal cleared', 'system');
     };
 
-    // Room management
     const leaveRoom = async () => {
         setIsLeaving(true);
         try {
@@ -436,7 +392,6 @@ const CodeEditor = () => {
         }
     };
 
-    // File management
     const handleManualSave = async () => {
         if (currentFile) {
             await saveCurrentFile();
@@ -445,29 +400,16 @@ const CodeEditor = () => {
         }
     };
 
-    // const handleCreateNewFile = () => {
-    //     if (ytextRef.current) {
-    //         ytextRef.current.delete(0, ytextRef.current.length);
-    //     }
-    //     setCurrentFile(null);
-    //     setLastSaved(null);
-    //     addToTerminal('New file created - use File Explorer to save', 'info');
-    //     setFileExplorerKey(prev => prev + 1);
-    // };
 
-    // Effects
     useEffect(() => {
         if (terminalRef.current) {
             terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
         }
     }, [terminalContent]);
 
-    // Initialize editor and connections
     useEffect(() => {
-        // Connect to execution WebSocket
         connectExecutionWebSocket();
 
-        // Initialize with empty editor
         const ydoc = new Y.Doc();
         const provider = new HocuspocusProvider({
             url: 'ws://localhost:1234',
@@ -482,7 +424,6 @@ const CodeEditor = () => {
         createEditor(ydoc, provider);
 
         return () => {
-            // Cleanup
             if (saveTimeoutRef.current) {
                 clearTimeout(saveTimeoutRef.current);
             }
@@ -510,7 +451,6 @@ const CodeEditor = () => {
         };
     }, [roomId]);
 
-    // Update language extension when language changes
     useEffect(() => {
         if (!editorViewRef.current || !ytextRef.current || !awarenessRef.current) return;
 
@@ -643,15 +583,7 @@ const CodeEditor = () => {
                                     </div>
                                 </button>
 
-                                {/* <button
-                                    onClick={handleCreateNewFile}
-                                    className="bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-xl font-medium transition-all duration-200 border border-white/30 hover:border-white/50"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <span>📄</span>
-                                        <span>New File</span>
-                                    </div>
-                                </button> */}
+
 
                                 <button
                                     onClick={clearTerminal}

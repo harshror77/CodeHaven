@@ -1,4 +1,3 @@
-// index.js
 import dotenv from 'dotenv'
 import { server } from './app.js'
 import connectDB from './db/index.js'

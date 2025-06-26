@@ -23,7 +23,6 @@ app.use(cookieParser());
 
 const server = http.createServer(app)
 
-//Routes
 import roomRoutes from './routes/roomRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -34,7 +33,6 @@ app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
 
-// Socket.io setup
 const io = new SocketServer(server, {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
@@ -43,7 +41,6 @@ const io = new SocketServer(server, {
   }
 })
 
-// Import and use chat socket handler
 import { handleChatSocket } from './socket/socket.js';
 handleChatSocket(io);
 

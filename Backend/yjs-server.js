@@ -6,10 +6,8 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-// Track active connections per room
 const roomConnections = new Map() // roomId -> Set of WebSocket objects
 
-// Parse document name into roomId and filePath
 function parseDocumentName(docName) {
   const parts = docName.split('::')
   if (parts.length < 2) {
@@ -22,7 +20,7 @@ function parseDocumentName(docName) {
 
   return {
     roomId: parts[0],
-    filePath: parts.slice(1).join('::'), // Handle paths with ::
+    filePath: parts.slice(1).join('::'),
     isValid: true
   }
 }
@@ -44,7 +42,6 @@ const server = new Server({
     console.log(`📥 Connection to room: ${roomId}, file: ${filePath}`)
 
     try {
-      // Verify room exists and is active
       const room = await Room.findActiveRoom(roomId)
       if (!room) {
         console.log(`❌ Room ${roomId} not found`)
@@ -53,19 +50,16 @@ const server = new Server({
 
       const currentConnections = roomConnections.get(roomId) || new Set()
 
-      // Enforce max 2 users per room
       if (currentConnections.size >= 2) {
         console.log(`❌ Room ${roomId} is full (${currentConnections.size}/2 users)`)
         throw new Error('Room is full (max 2 users)')
       }
 
-      // Track this WebSocket object
       currentConnections.add(ws)
       roomConnections.set(roomId, currentConnections)
 
       console.log(`✅ User connected to room ${roomId}. Active: ${currentConnections.size}/2`)
 
-      // Update lastActivity timestamp in DB
       room.lastActivity = new Date()
       await room.save()
 
@@ -87,11 +81,9 @@ const server = new Server({
         currentConnections.delete(ws)
 
         if (currentConnections.size === 0) {
-          // No one left, clean up
           roomConnections.delete(roomId)
           console.log(`🗑️ Room ${roomId} removed from active tracking`)
 
-          // Optionally mark room inactive in DB
           const room = await Room.findActiveRoom(roomId)
           if (room) {
             const activeUsers = room.users.filter(u => u.isActive)
@@ -107,7 +99,6 @@ const server = new Server({
         }
       }
 
-      // Always update lastActivity
       const room = await Room.findActiveRoom(roomId)
       if (room) {
         room.lastActivity = new Date()
@@ -130,7 +121,6 @@ const server = new Server({
     try {
       const content = data.document.getText('codemirror').toString()
 
-      // Update the specific file in the database
       const updatedFile = await File.findOneAndUpdate(
         { roomId, path: filePath },
         {
@@ -146,7 +136,6 @@ const server = new Server({
         console.log(`⚠️ File not found: ${filePath} in room ${roomId}`)
       }
 
-      // Update room's last activity
       const room = await Room.findActiveRoom(roomId)
       if (room) {
         room.lastActivity = new Date()
@@ -167,7 +156,6 @@ const server = new Server({
     }
 
     try {
-      // Load file content from database
       const file = await File.findOne({ roomId, path: filePath })
 
       if (file) {
@@ -175,7 +163,6 @@ const server = new Server({
         const ydoc = data.document
         const ytext = ydoc.getText('codemirror')
 
-        // Only initialize if empty
         if (ytext.length === 0 && file.content) {
           ytext.insert(0, file.content)
         }
@@ -188,7 +175,6 @@ const server = new Server({
   }
 })
 
-// Periodic cleanup of old rooms (e.g., expired or inactive)
 setInterval(async () => {
   try {
     const result = await Room.cleanupOldRooms()
@@ -196,7 +182,6 @@ setInterval(async () => {
       console.log(`🧹 Cleaned up ${result.deletedCount} old rooms`)
     }
 
-    // Also clean up old files
     const fileResult = await File.cleanupOrphanedFiles()
     if (fileResult.deletedCount > 0) {
       console.log(`🧹 Cleaned up ${fileResult.deletedCount} orphaned files`)
@@ -204,9 +189,7 @@ setInterval(async () => {
   } catch (error) {
     console.error('❌ Cleanup error:', error)
   }
-}, 60 * 60 * 1000) // Every hour
-
-// Utility helpers
+}, 60 * 60 * 1000)
 export const getRoomConnectionCount = (roomId) => {
   const connections = roomConnections.get(roomId)
   return connections ? connections.size : 0

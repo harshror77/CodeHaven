@@ -16,7 +16,6 @@ const generateAccessAndRefreshToken = async (userId) => {
     return { accessToken, refreshToken };
 }
 const registerUser = asyncHandler(async (req, res) => {
-    // console.log(req.body)
     const { email, password, username } = req.body
     if (!email || !password || !username || email.trim() === "" || username.trim() === "" || password.trim() === "") {
         throw new ApiError(404, "All fields are required")
@@ -52,7 +51,6 @@ const registerUser = asyncHandler(async (req, res) => {
 })
 
 const loginUser = asyncHandler(async (req, res) => {
-    // console.log(req.body);
     const { email, password } = req.body;
     if (!email || !password) {
         throw new ApiError(404, "Email or password is required");
@@ -72,8 +70,8 @@ const loginUser = asyncHandler(async (req, res) => {
     }
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // ✅ Ensures HTTPS in production
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // ✅ Allows cross-origin cookies
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     };
 
     return res.status(200)

@@ -29,7 +29,6 @@ const authSlice = createSlice({
             state.onlineUsers = action.payload;
         },
         removeOnlineUser(state, action) {
-            // console.log(action.payload);
             delete state.onlineUsers[action.payload];
         }
     },

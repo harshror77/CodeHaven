@@ -8,11 +8,11 @@ const fileSchema = new mongoose.Schema({
     },
     name: {
         type: String,
-        required: true, // File or folder name
+        required: true,
     },
     path: {
         type: String,
-        required: true, // Full path like `/src/App.js` or `/src/utils/`
+        required: true,
         index: true,
     },
     type: {
@@ -38,7 +38,6 @@ const fileSchema = new mongoose.Schema({
 });
 
 fileSchema.index({ roomId: 1, path: 1 }, { unique: true });
-// File model method
 fileSchema.statics.cleanupOrphanedFiles = async function () {
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
 

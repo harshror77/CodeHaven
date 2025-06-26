@@ -69,10 +69,8 @@ const Room = () => {
         setError('');
 
         try {
-            // First check if room exists
             const checkResponse = await api.get(`/rooms/${roomId.trim()}/check`);
             const checkData = checkResponse.data;
-            // console.log(checkData);
             if (!checkData.success) {
                 setError('Room not found');
                 setLoading(false);
@@ -85,7 +83,6 @@ const Room = () => {
                 return;
             }
 
-            // Join the room
             const joinResponse = await api.post(`/rooms/${roomId.trim()}/join`, {
                 userId: userId,
                 userName: userName
@@ -103,11 +100,9 @@ const Room = () => {
             }
         } catch (err) {
             if (err.response) {
-                // Server responded with error status
                 const data = err.response.data;
                 setError(data.message || 'Failed to join room');
             } else if (err.request) {
-                // Network error
                 setError('Network error. Please try again.');
             } else {
                 setError('An unexpected error occurred.');
@@ -120,7 +115,7 @@ const Room = () => {
 
     const handleJoinInputChange = (e) => {
         setRoomId(e.target.value);
-        setError(''); // Clear error when user types
+        setError('');
     };
 
     const handleKeyPress = (e) => {

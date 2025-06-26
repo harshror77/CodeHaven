@@ -24,7 +24,6 @@ const Chat = ({ roomId, userId, username }) => {
     const messagesEndRef = useRef(null);
     const chatInputRef = useRef(null);
 
-    // Socket event handlers
     const handleNewMessage = useCallback((message) => {
         if (messageIdsRef.current.has(message._id)) return;
         messageIdsRef.current.add(message._id);
@@ -42,16 +41,13 @@ const Chat = ({ roomId, userId, username }) => {
 
     const handleRoomJoined = useCallback((data) => setRoomUsers(data.roomUsers), []);
 
-    // User left handler - only updates room count, no messages
     const handleUserLeft = useCallback((data) => {
         setRoomUsers(data.roomUsers);
-        // No system message for user leaving
     }, []);
 
-    // Initialize socket
     useEffect(() => {
         if (!roomId || !userId || !username) return;
-        if (socketRef.current) return; // already connected
+        if (socketRef.current) return;
 
         const socket = io(import.meta.env.VITE_SOCKET_URL, {
             withCredentials: true,
@@ -86,7 +82,6 @@ const Chat = ({ roomId, userId, username }) => {
         };
     }, [roomId, userId, username, handleNewMessage, handleUserTyping, handleRoomJoined, handleUserLeft]);
 
-    // Fetch previous messages
     useEffect(() => {
         if (!roomId) return;
         api.get(`/chat/${roomId}/messages`)
@@ -106,17 +101,14 @@ const Chat = ({ roomId, userId, username }) => {
             .catch(() => setMessages([]));
     }, [roomId]);
 
-    // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Reset unread
     useEffect(() => {
         if (isChatOpen && !isMinimized) setUnreadCount(0);
     }, [isChatOpen, isMinimized]);
 
-    // Typing indicator emit
     const handleTypingStart = useCallback(() => {
         if (!socketRef.current?.connected) return;
         socketRef.current.emit('typing-start', { roomId, userId, username });
@@ -126,7 +118,6 @@ const Chat = ({ roomId, userId, username }) => {
         }, 1000);
     }, [roomId, userId, username]);
 
-    // Sending message
     const handleSendMessage = useCallback(
         (e) => {
             e.preventDefault();
@@ -139,7 +130,6 @@ const Chat = ({ roomId, userId, username }) => {
         [newMessage, roomId, userId, username]
     );
 
-    // Input change / keypress
     const handleInputChange = useCallback((e) => {
         setNewMessage(e.target.value);
         handleTypingStart();
@@ -154,18 +144,15 @@ const Chat = ({ roomId, userId, username }) => {
 
     const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Controls
     const openChat = () => { setIsChatOpen(true); setIsMinimized(false); setTimeout(() => chatInputRef.current?.focus(), 100); };
     const closeChat = () => setIsChatOpen(false);
     const minimizeChat = () => setIsMinimized(true);
     const maximizeChat = () => { setIsMinimized(false); setTimeout(() => chatInputRef.current?.focus(), 100); };
 
-    // If missing required props
     if (!roomId || !userId || !username) return null;
 
     return (
         <>
-            {/* Chat Button */}
             {!isChatOpen && (
                 <button
                     onClick={openChat}
@@ -180,7 +167,6 @@ const Chat = ({ roomId, userId, username }) => {
                 </button>
             )}
 
-            {/* Chat Window (always mounted) */}
             <div
                 className={`fixed bottom-4 right-4 z-50 bg-white rounded-lg shadow-xl border transition-all duration-200 ${!isChatOpen ? 'opacity-0 pointer-events-none' : ''} ${isMinimized ? 'w-80 h-12' : 'w-80 h-96'}`}
                 data-chat-open={isChatOpen}

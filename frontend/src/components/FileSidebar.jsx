@@ -16,13 +16,11 @@ import {
     AlertTriangle,
 } from 'lucide-react';
 
-// Use the same API base URL as CodeEditor
 const api = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
     headers: { 'Content-Type': 'application/json' },
 });
 
-// Custom Delete Confirmation Modal
 function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, itemType }) {
     if (!isOpen) return null;
 
@@ -105,7 +103,6 @@ export default function FileExplorer({ roomId, onFileSelect }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Modal state
     const [deleteModal, setDeleteModal] = useState({
         isOpen: false,
         item: null
@@ -135,14 +132,11 @@ export default function FileExplorer({ roomId, onFileSelect }) {
         }
     }
 
-    // Build hierarchical file tree from flat array
     const buildFileTree = (files) => {
         const tree = [];
         const pathMap = new Map();
 
-        // Sort files by path for proper hierarchy
         const sortedFiles = [...files].sort((a, b) => {
-            // Folders first, then files
             if (a.type !== b.type) {
                 return a.type === 'folder' ? -1 : 1;
             }
@@ -161,18 +155,15 @@ export default function FileExplorer({ roomId, onFileSelect }) {
 
             pathMap.set(file.path, treeItem);
 
-            // Root level items (no parent)
             if (depth === 0 || file.path.startsWith('/') && file.path.split('/').filter(p => p).length === 1) {
                 tree.push(treeItem);
             } else {
-                // Find parent folder
                 const parentPath = '/' + pathParts.slice(0, -1).join('/');
                 const parent = pathMap.get(parentPath);
 
                 if (parent && parent.children) {
                     parent.children.push(treeItem);
                 } else {
-                    // If parent not found, add to root (fallback)
                     tree.push(treeItem);
                 }
             }
@@ -181,7 +172,6 @@ export default function FileExplorer({ roomId, onFileSelect }) {
         return tree;
     };
 
-    // Flatten tree for rendering with proper indentation
     const flattenTree = (items, expanded = expandedFolders) => {
         const result = [];
 
@@ -229,7 +219,6 @@ export default function FileExplorer({ roomId, onFileSelect }) {
         setSelectedPath(item.path);
 
         if (item.type === 'folder') {
-            // Toggle folder expansion
             setExpandedFolders(prev => {
                 const newSet = new Set(prev);
                 if (newSet.has(item.path)) {
@@ -240,11 +229,9 @@ export default function FileExplorer({ roomId, onFileSelect }) {
                 return newSet;
             });
         } else {
-            // Load file content and pass to CodeEditor
             try {
                 const fileData = {
                     ...item,
-                    // Ensure content is available
                     content: item.content || ''
                 };
                 onFileSelect(fileData);
@@ -258,7 +245,6 @@ export default function FileExplorer({ roomId, onFileSelect }) {
     const handleCreate = async () => {
         if (!newName.trim()) return;
 
-        // Determine the full path based on current selection
         let fullPath;
         const findItemByPath = (nodes, targetPath) => {
             for (const node of nodes) {
@@ -275,15 +261,12 @@ export default function FileExplorer({ roomId, onFileSelect }) {
             const selectedItem = findItemByPath(items, selectedPath);
 
             if (selectedItem?.type === 'folder') {
-                // Create inside selected folder
                 const folderPath = selectedPath.endsWith('/') ? selectedPath : selectedPath + '/';
                 fullPath = folderPath + newName;
             } else {
-                // Create at root level
                 fullPath = '/' + newName;
             }
         } else {
-            // Create at root level
             fullPath = '/' + newName;
         }
 
@@ -300,7 +283,6 @@ export default function FileExplorer({ roomId, onFileSelect }) {
                 setNewName('');
                 await fetchItems();
 
-                // Auto-expand parent folder if creating inside it
                 if (selectedPath && newType === 'file') {
                     setExpandedFolders(prev => new Set([...prev, selectedPath]));
                 }
