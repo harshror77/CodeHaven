@@ -3,6 +3,6 @@ services:
     name: codehaven
     env: docker
     plan: free
-    repo: https://github.com/harshror77/CodeHaven.git
+    repo: https://github.com/harshror77/CodeHaven
     branch: main
     rootDir: .
