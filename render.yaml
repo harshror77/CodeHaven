@@ -1,8 +1,2 @@
-services:
-  - type: web
-    name: codehaven
-    env: docker
-    plan: free
-    repo: https://github.com/harshror77/CodeHaven
-    branch: main
-    rootDir: .
+infrastructure:
+  version: 1
