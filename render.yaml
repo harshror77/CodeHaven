@@ -4,5 +4,5 @@ services:
     env: docker
     plan: free
     repo: https://github.com/harshror77/CodeHaven.git
-    buildCommand: docker-compose build
-    startCommand: docker-compose up
+    branch: main
+    rootDir: .
