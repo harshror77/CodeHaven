@@ -1,0 +1,101 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark"
+    tools:context=".registration.LoginActivity">
+
+        <!-- Welcome header -->
+        <TextView
+            android:id="@+id/headerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome to CodeHaven"
+            android:textColor="@color/text_primary_dark"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="48dp"/>
+
+        <TextView
+            android:id="@+id/subText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sign in to continue your coding journey"
+            android:textColor="@color/text_secondary_dark"
+            android:layout_below="@id/headerText"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"/>
+
+        <!-- Email input -->
+        <EditText
+            android:id="@+id/emailEditText"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_below="@id/subText"
+            android:layout_marginTop="32dp"
+            android:hint="Email"
+            android:background="@drawable/edittext_bg"
+            android:padding="12dp"
+            android:textColor="@color/text_primary_dark"
+            android:textColorHint="@color/text_secondary_dark"/>
+
+        <!-- Password input -->
+        <EditText
+            android:id="@+id/passwordEditText"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_below="@id/emailEditText"
+            android:layout_marginTop="16dp"
+            android:hint="Password"
+            android:background="@drawable/edittext_bg"
+            android:padding="12dp"
+            android:inputType="textPassword"
+            android:textColor="@color/text_primary_dark"
+            android:textColorHint="@color/text_secondary_dark"/>
+
+        <!-- Error text -->
+        <TextView
+            android:id="@+id/errorText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/passwordEditText"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/error_red"
+            android:visibility="gone"/>
+
+        <!-- ProgressBar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_below="@id/errorText"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"/>
+
+        <!-- Login button -->
+        <Button
+            android:id="@+id/loginBtn"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_below="@id/progressBar"
+            android:layout_marginTop="16dp"
+            android:text="Sign In"
+            android:background="@drawable/button_bg"
+            android:textColor="@color/text_primary_dark"
+            android:textStyle="bold"/>
+
+        <!-- Register link -->
+        <TextView
+            android:id="@+id/registerLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Don't have an account? Register"
+            android:textColor="@color/link_blue"
+            android:layout_below="@id/loginBtn"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="24dp"
+            android:textSize="14sp"/>
+</RelativeLayout>
